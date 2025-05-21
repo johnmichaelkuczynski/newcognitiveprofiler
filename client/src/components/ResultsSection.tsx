@@ -249,16 +249,19 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
               <div className="mb-6">
                 <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Provider Comparison</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(result).map(([provider, analysis]) => (
-                    <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-2">
-                        {React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-5 w-5 text-primary" })}
-                        <span className="font-medium">{providerInfo[provider as ModelProvider].name}</span>
+                  {Object.entries(result).map(([provider, analysis]) => {
+                    const { name, icon: Icon } = providerInfo[provider as ModelProvider];
+                    return (
+                      <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 flex flex-col items-center">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Icon className="h-5 w-5 text-primary" />
+                          <span className="font-medium">{name}</span>
+                        </div>
+                        <div className="text-3xl font-bold text-primary mb-1">{analysis.intelligenceScore}</div>
+                        <div className="text-sm text-neutral-600 text-center">Intelligence Score</div>
                       </div>
-                      <div className="text-3xl font-bold text-primary mb-1">{analysis.intelligenceScore}</div>
-                      <div className="text-sm text-neutral-600 text-center">Intelligence Score</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -281,8 +284,15 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
               <TabsContent key={provider} value={provider}>
                 <div className="p-4 border border-neutral-200 rounded-xl">
                   <div className="flex items-center gap-2 mb-4">
-                    {React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-6 w-6 text-primary" })}
-                    <h3 className="font-heading font-medium text-lg">{providerInfo[provider as ModelProvider].name} Analysis</h3>
+                    {(() => {
+                      const { name, icon: Icon } = providerInfo[provider as ModelProvider];
+                      return (
+                        <>
+                          <Icon className="h-6 w-6 text-primary" />
+                          <h3 className="font-heading font-medium text-lg">{name} Analysis</h3>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="mb-6">
