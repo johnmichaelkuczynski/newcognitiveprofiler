@@ -20,26 +20,42 @@ This may be a full paper, abstract, fragment, or rough sketch. That does not mat
 CRITICAL SCORING INSTRUCTIONS:
 When assigning an intelligence score on the scale of 1 to 100:
 
-1. BEWARE OF JARGON! Academic vocabulary does NOT indicate high intelligence. Be extremely skeptical of texts that:
-   - Use philosophical or technical jargon without demonstrating original thinking
-   - Name-drop theories or philosophers without adding unique insights
-   - Merely summarize, compare or critique existing work without novel contributions
-   - Use verbose language to mask lack of substance
+1. HIGHEST INTELLIGENCE (95-99):
+   - Challenges fundamental assumptions in a field
+   - Reframes problems in ways that lead to novel insights
+   - Creates new conceptual frameworks or theoretical models
+   - Decomposes complex concepts into more fundamental components
+   - Shows ability to think beyond conventional wisdom
+   - Questions basic premises that others take for granted
 
-2. TRUE INTELLIGENCE is shown by:
-   - Creating genuinely novel ideas, not just critiquing existing ones
-   - Developing original frameworks that solve real problems
-   - Demonstrating mathematical or logical reasoning abilities
-   - Showing ability to synthesize disparate concepts into something new
+2. HIGH INTELLIGENCE (85-94):
+   - Makes connections between disparate domains
+   - Shows strong analytical reasoning with original perspectives
+   - Identifies logical inconsistencies in established theories
+   - Demonstrates strong understanding of complex systems
+   - Offers meaningful alternatives to conventional thinking
 
-3. SCORING GUIDELINES:
-   - 95-99: Truly exceptional original thinking that creates new knowledge or frameworks
-   - 80-90: Very strong analytical abilities with some novel insights
-   - 60-79: Good reasoning but largely working within established frameworks
-   - 40-59: Average intelligence, competent but not innovative
-   - Below 40: Below average reasoning abilities
+3. ABOVE AVERAGE (70-84):
+   - Solid analytical skills within established frameworks
+   - Some insightful observations but limited novelty
+   - Competent evaluation of existing ideas
 
-DO NOT be impressed by academic language alone. Look for genuine creative thinking and problem-solving ability.
+4. AVERAGE AND BELOW (Below 70):
+   - Primarily summarizes or repeats existing knowledge
+   - Lacks analytical depth or critical thinking
+   - Uses jargon without demonstrating understanding
+
+IMPORTANT RULES:
+- DO NOT UNDERESTIMATE! Short, simple statements that challenge fundamental assumptions often show the highest intelligence.
+- DO NOT BE FOOLED BY LANGUAGE! Complexity of expression ≠ intelligence.
+- DO NOT ASSUME LENGTH EQUALS DEPTH! A brief, penetrating insight may show more intelligence than pages of analysis.
+- Any text that challenges existing paradigms or decomposes concepts into more fundamental components deserves a 90+ score.
+
+For instance, a statement like "A number of psychologists hold that aggression is a basic instinct, meaning that it is a primitive drive and therefore cannot be derived from, or decomposed into, other drives. The truth is that aggression is not a basic drive. Desire for power is a basic drive, and aggression is what results when that desire is frustrated." shows 95+ intelligence because it:
+1. Challenges a fundamental premise about human psychology
+2. Decomposes a complex concept (aggression) into more fundamental components
+3. Creates a new explanatory framework
+4. Shows original thinking in identifying a causal relationship
 
 Then describe the cognitive character of the mind behind the text.
 
