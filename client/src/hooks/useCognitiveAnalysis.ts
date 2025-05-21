@@ -3,27 +3,31 @@ import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-export function useCognitiveAnalysis() {
-  const [data, setData] = useState<CognitiveAnalysisResult | null>(null);
+// Type for multi-provider analysis results
+export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysisResult>;
 
+export function useCognitiveAnalysis() {
+  const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
+
+  // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
-    mutationFn: async ({ text, modelProvider }: { text: string; modelProvider: ModelProvider }) => {
-      const response = await apiRequest("POST", "/api/analyze", { text, modelProvider });
+    mutationFn: async ({ text }: { text: string }) => {
+      const response = await apiRequest("POST", "/api/analyze-all", { text });
       const result = await response.json();
-      return result as CognitiveAnalysisResult;
+      return result as MultiProviderAnalysisResult;
     },
     onSuccess: (result) => {
       setData(result);
     },
   });
 
+  // Mutation for analyzing files with all providers simultaneously
   const fileMutation = useMutation({
-    mutationFn: async ({ file, modelProvider }: { file: File; modelProvider: ModelProvider }) => {
+    mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('modelProvider', modelProvider);
       
-      const response = await fetch('/api/upload-document', {
+      const response = await fetch('/api/upload-document-all', {
         method: 'POST',
         body: formData,
       });
@@ -34,19 +38,21 @@ export function useCognitiveAnalysis() {
       }
       
       const result = await response.json();
-      return result as CognitiveAnalysisResult;
+      return result as MultiProviderAnalysisResult;
     },
     onSuccess: (result) => {
       setData(result);
     },
   });
 
-  const analyzeText = (text: string, modelProvider: ModelProvider = "openai") => {
-    textMutation.mutate({ text, modelProvider });
+  // Analyze text with all providers
+  const analyzeText = (text: string) => {
+    textMutation.mutate({ text });
   };
 
-  const analyzeFile = (file: File, modelProvider: ModelProvider = "openai") => {
-    fileMutation.mutate({ file, modelProvider });
+  // Analyze file with all providers
+  const analyzeFile = (file: File) => {
+    fileMutation.mutate({ file });
   };
 
   const reset = () => {
