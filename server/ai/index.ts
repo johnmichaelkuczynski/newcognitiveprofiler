@@ -13,54 +13,40 @@ export type ModelProvider = "openai" | "anthropic" | "perplexity";
  * 3. No mention of evidence, references, etc.
  */
 function validateAnalysisResult(result: CognitiveAnalysisResult): { valid: boolean; issues: string[] } {
+  // Only look for the most serious issues that defeat the purpose of the app
   const issues: string[] = [];
-  const fullText = [
-    result.detailedAnalysis,
-    ...result.characteristics,
-    ...result.strengths,
-    ...result.tendencies
-  ].join(' ').toLowerCase();
+  const fullText = result.detailedAnalysis.toLowerCase();
 
-  // Check for grading language
-  const gradingTerms = [
-    'would benefit from', 'needs more', 'could use', 'lacks', 'insufficient',
-    'incomplete', 'more thorough', 'more complete', 'citations', 'references',
-    'evidence', 'support', 'could improve', 'should include', 'would be better',
-    'clarity', 'format', 'structure', 'organization', 'polish', 'edit'
+  // Check for explicit grading language
+  const criticalGradingPhrases = [
+    'would benefit from more references',
+    'needs more evidence',
+    'lacks supporting evidence',
+    'lacks citations',
+    'needs citations',
+    'more research',
+    'the paper would be better if',
+    'the writing needs',
+    'incomplete argument',
+    'insufficient evidence',
+    'lacks academic rigor'
   ];
 
-  for (const term of gradingTerms) {
-    if (fullText.includes(term)) {
-      issues.push(`Contains grading language: "${term}"`);
+  for (const phrase of criticalGradingPhrases) {
+    if (fullText.includes(phrase)) {
+      issues.push(`Contains paper grading language: "${phrase}"`);
     }
   }
 
-  // Check for score-description alignment
-  const highIntellectTerms = [
-    'deep reasoning', 'abstract', 'novel', 'original', 'exceptional',
-    'sophisticated', 'complex', 'profound', 'visionary', 'groundbreaking',
-    'paradigm', 'innovative', 'creative', 'brilliant', 'remarkable',
-    'extraordinary', 'outstanding', 'superior', 'reframing', 'reconceptualizing',
-    'challenging fundamental', 'decomposes'
-  ];
-
-  const highIntellectFound = highIntellectTerms.filter(term => fullText.includes(term));
-  const hasHighIntellectTerms = highIntellectFound.length > 0;
-  
-  if (hasHighIntellectTerms && result.intelligenceScore < 90) {
-    issues.push(`Discrepancy: Uses terms indicating high intelligence (${highIntellectFound.join(', ')}) but gives score of only ${result.intelligenceScore}`);
-  }
-
-  // Check for excessive focus on writing quality
-  const writingQualityTerms = [
-    'writing style', 'writing quality', 'well written', 'poorly written', 'grammar',
-    'syntax', 'articulate', 'articulation', 'expression', 'lacks depth', 'lacks evidence'
-  ];
-
-  for (const term of writingQualityTerms) {
-    if (fullText.includes(term)) {
-      issues.push(`Focuses on writing quality: "${term}"`);
-    }
+  // Check for severe score-description mismatch
+  if (
+    (fullText.includes('groundbreaking') || 
+     fullText.includes('exceptional original') || 
+     fullText.includes('revolutionary') ||
+     fullText.includes('extraordinary intelligence')) && 
+    result.intelligenceScore < 85
+  ) {
+    issues.push(`Major score discrepancy: Describes exceptional intelligence but score is ${result.intelligenceScore}`);
   }
 
   return {
