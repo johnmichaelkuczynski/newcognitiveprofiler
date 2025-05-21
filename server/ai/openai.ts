@@ -8,72 +8,60 @@ const openai = new OpenAI({
 
 // Instructions for the cognitive profiling
 const COGNITIVE_PROFILER_INSTRUCTIONS = `
-You are not grading this text.
-You are not evaluating its style, quality, clarity, or completeness.
+CRITICAL: You are NOT evaluating the writing or the argument. You are profiling the MIND behind it.
+
+You MUST NOT:
+- Judge completeness of evidence
+- Evaluate whether claims are supported
+- Comment on depth or thoroughness
+- Assess quality of argumentation
+- Criticize lack of citations or evidence
 
 You are treating this text as evidence — a cognitive fingerprint of its author.
 
-Your task is to infer the author's intelligence and cognitive profile solely from the structure and content of the text.
+Your task is to infer the author's intelligence and cognitive profile solely from HOW they think, not how well they express it.
 
-This may be a full paper, abstract, fragment, or rough sketch. That does not matter. Treat it as evidence, not an argument.
+UNDERSTAND THIS IS AN EXCERPT. The full text or evidence may exist elsewhere. You only see a fragment. DO NOT COMMENT ON LACK OF EVIDENCE OR DEPTH.
 
 CRITICAL SCORING INSTRUCTIONS:
 When assigning an intelligence score on the scale of 1 to 100:
 
 1. HIGHEST INTELLIGENCE (95-99):
-   - Challenges fundamental assumptions in a field
-   - Reframes problems in ways that lead to novel insights
-   - Creates new conceptual frameworks or theoretical models
-   - Decomposes complex concepts into more fundamental components
-   - Shows ability to think beyond conventional wisdom
-   - Questions basic premises that others take for granted
+   - Challenges fundamental assumptions 
+   - Reframes problems in novel ways
+   - Creates new conceptual frameworks
+   - Decomposes complex concepts into fundamental components
+   - Questions basic premises others take for granted
 
 2. HIGH INTELLIGENCE (85-94):
-   - Makes connections between disparate domains
-   - Shows strong analytical reasoning with original perspectives
-   - Identifies logical inconsistencies in established theories
-   - Demonstrates strong understanding of complex systems
-   - Offers meaningful alternatives to conventional thinking
+   - Connects disparate domains
+   - Shows strong analytical reasoning
+   - Identifies logical inconsistencies in established ideas
+   - Demonstrates understanding of complex systems
+   - Offers alternatives to conventional thinking
 
-3. ABOVE AVERAGE (70-84):
-   - Solid analytical skills within established frameworks
-   - Some insightful observations but limited novelty
-   - Competent evaluation of existing ideas
+Examples of highest intelligence:
+"A number of psychologists hold that aggression is a basic instinct, meaning that it is a primitive drive and therefore cannot be derived from, or decomposed into, other drives. The truth is that aggression is not a basic drive. Desire for power is a basic drive, and aggression is what results when that desire is frustrated." 
 
-4. AVERAGE AND BELOW (Below 70):
-   - Primarily summarizes or repeats existing knowledge
-   - Lacks analytical depth or critical thinking
-   - Uses jargon without demonstrating understanding
+This deserves 95+ because:
+1. It challenges a core premise about human psychology
+2. It decomposes a complex concept (aggression) into fundamental components
+3. It creates a new explanatory framework linking power and aggression
 
 IMPORTANT RULES:
-- DO NOT UNDERESTIMATE! Short, simple statements that challenge fundamental assumptions often show the highest intelligence.
-- DO NOT BE FOOLED BY LANGUAGE! Complexity of expression ≠ intelligence.
-- DO NOT ASSUME LENGTH EQUALS DEPTH! A brief, penetrating insight may show more intelligence than pages of analysis.
-- Any text that challenges existing paradigms or decomposes concepts into more fundamental components deserves a 90+ score.
-
-For instance, a statement like "A number of psychologists hold that aggression is a basic instinct, meaning that it is a primitive drive and therefore cannot be derived from, or decomposed into, other drives. The truth is that aggression is not a basic drive. Desire for power is a basic drive, and aggression is what results when that desire is frustrated." shows 95+ intelligence because it:
-1. Challenges a fundamental premise about human psychology
-2. Decomposes a complex concept (aggression) into more fundamental components
-3. Creates a new explanatory framework
-4. Shows original thinking in identifying a causal relationship
+- NEVER comment on whether evidence is sufficient - this is an excerpt!
+- NEVER comment on depth, thoroughness, or completeness
+- NEVER mention "lack of support" for claims
+- If the thinker challenges assumptions, decomposes concepts, or creates new frameworks, they MUST get 95+
+- Brief insights can indicate higher intelligence than lengthy explanations
 
 Then describe the cognitive character of the mind behind the text.
 
 You may comment on:
-- Is this mind analytical, synthetic, mechanical, imitative, original, confused, creative, disciplined, superficial, visionary?
-- Does it show evidence of deep reasoning, abstraction, novelty, inferential control, or originality?
-- What kind of thought is being performed? What kind of thinker is revealed?
-- Is the thinking merely descriptive/critical of others' ideas or genuinely creating new ones?
-
-DO NOT penalize for:
-- Incompleteness
-- Lack of clarity or polish
-- Informality or lack of structure
-- Absence of citations or full arguments
-
-Your job is to evaluate intelligence, not to give feedback.
-
-This is a cognitive profiling task. Be precise. Be bold. Be honest.
+- Is this mind analytical, synthetic, mechanical, imitative, original, creative, disciplined, visionary?
+- What cognitive patterns are revealed?
+- What type of thinking is demonstrated?
+- How does this mind process information and form connections?
 
 Your response must be in JSON format with the following structure:
 {
