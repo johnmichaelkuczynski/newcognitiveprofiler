@@ -7,13 +7,14 @@ import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
-import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
+import { ModelProvider } from "@/types/analysis";
 import { AlertCircle } from "lucide-react";
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [textSample, setTextSample] = useState("");
-  const [selectedModel, setSelectedModel] = useState<ModelProvider>("openai");
+  
+  // We don't need selectedModel anymore since we're always analyzing with all providers
   
   const {
     analyzeText,
@@ -33,12 +34,11 @@ export default function Home() {
     if (textSample.length < 100) {
       return;
     }
-    analyzeText(textSample, selectedModel);
+    // Analyze with all providers simultaneously
+    analyzeText(textSample);
   };
 
-  const handleModelChange = (model: ModelProvider) => {
-    setSelectedModel(model);
-  };
+  // handleModelChange is no longer needed since we're using all providers
 
   const handleReset = () => {
     reset();
@@ -62,7 +62,8 @@ export default function Home() {
       reader.readAsText(file);
     } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
       // For PDF, Word documents - send directly to server for processing
-      analyzeFile(file, selectedModel);
+      // Analyze with all providers simultaneously
+      analyzeFile(file);
     } else {
       // For unsupported formats
       console.error("Unsupported file format");
@@ -101,8 +102,6 @@ export default function Home() {
         {!isLoading && !analysisResult && !isError && (
           <InputSection 
             textSample={textSample}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
             onTextChange={handleTextChange} 
             onAnalyze={handleAnalyze}
             onFileUpload={handleFileUpload}

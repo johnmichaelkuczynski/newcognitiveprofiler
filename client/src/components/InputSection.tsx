@@ -1,13 +1,10 @@
-import { CloudUploadIcon, ZapIcon, PaperclipIcon } from "lucide-react";
+import { ZapIcon, PaperclipIcon, Layers } from "lucide-react";
 import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ModelProvider } from "@/types/analysis";
+import { Badge } from "@/components/ui/badge";
 
 interface InputSectionProps {
   textSample: string;
-  selectedModel: ModelProvider;
-  onModelChange: (value: ModelProvider) => void;
   onTextChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onAnalyze: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -15,8 +12,6 @@ interface InputSectionProps {
 
 export default function InputSection({ 
   textSample,
-  selectedModel,
-  onModelChange, 
   onTextChange, 
   onAnalyze,
   onFileUpload
@@ -41,7 +36,13 @@ export default function InputSection({
   return (
     <section className="mb-8 max-w-4xl mx-auto">
       <div className="bg-white rounded-xl shadow-card p-6">
-        <h2 className="font-heading font-semibold text-xl text-secondary-light mb-4">Cognitive Profiling Analysis</h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+          <h2 className="font-heading font-semibold text-xl text-secondary-light">Cognitive Profiling Analysis</h2>
+          <Badge variant="outline" className="flex items-center gap-1 px-3 py-1 bg-secondary/5">
+            <Layers className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium">Multi-Provider Analysis</span>
+          </Badge>
+        </div>
         
         <div className="mb-6">
           <div className="relative">
@@ -80,19 +81,9 @@ export default function InputSection({
           <div className="flex justify-between items-center mt-2">
             <p className="text-xs text-neutral-500">Supported formats: .txt, .doc, .docx, .pdf, .rtf</p>
             <div className="flex items-center gap-2">
-              <label htmlFor="model-select" className="text-sm font-medium text-neutral-700">
-                AI Model:
-              </label>
-              <Select value={selectedModel} onValueChange={(value: ModelProvider) => onModelChange(value)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select AI model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
-                  <SelectItem value="anthropic">Anthropic (Claude 3.7)</SelectItem>
-                  <SelectItem value="perplexity">Perplexity (Llama 3.1)</SelectItem>
-                </SelectContent>
-              </Select>
+              <span className="text-sm font-medium text-neutral-700">
+                Analysis using: OpenAI, Anthropic & Perplexity
+              </span>
             </div>
           </div>
         </div>
@@ -105,7 +96,7 @@ export default function InputSection({
             size="lg"
           >
             <ZapIcon className="h-5 w-5 mr-2" />
-            <span>Analyze Writing</span>
+            <span>Analyze with All Providers</span>
           </Button>
         </div>
       </div>
