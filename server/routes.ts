@@ -1,7 +1,9 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeText, type ModelProvider } from "./ai";
+import { parseDocument } from "./documentParser";
+import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -12,6 +14,14 @@ const analyzeRequestSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure multer for file uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB file size limit
+    },
+  });
+
   // Cognitive analysis endpoint
   app.post("/api/analyze", async (req, res) => {
     try {
@@ -36,6 +46,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: errorMessage 
       });
+    }
+  });
+
+  // File upload endpoint for document analysis
+  app.post("/api/upload-document", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Get model provider
+      const modelProvider = req.body.modelProvider || 'openai';
+      
+      // Parse the document to extract text based on file type
+      const extractedText = await parseDocument(req.file);
+      
+      // Check the text length
+      if (extractedText.length < 100) {
+        return res.status(400).json({ 
+          message: "The extracted text is too short. Please upload a document with more content (minimum 100 characters)." 
+        });
+      }
+      
+      // Analyze the extracted text using the selected AI provider
+      const analysis = await analyzeText(extractedText, modelProvider as ModelProvider);
+      
+      // Return the analysis result
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error processing document:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
