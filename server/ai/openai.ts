@@ -20,13 +20,26 @@ This may be a full paper, abstract, fragment, or rough sketch. That does not mat
 CRITICAL SCORING INSTRUCTIONS:
 When assigning an intelligence score on the scale of 1 to 100:
 
-- ANY text showing deep reasoning, abstraction, originality, or engagement with complex concepts MUST receive a score of 95-99.
-- Evidence of novel solutions, synthesizing complex ideas, creating integrated theories, or resolving apparent incompatibilities MUST receive 95-99.
-- Do not underestimate. If you detect exceptional characteristics, you MUST give an exceptional score. 
-- If you list "deep reasoning," "abstraction," "originality," or "inferential control" as strengths, the score CANNOT be below 95.
-- If you detect work with complex mathematical or philosophical concepts, the score CANNOT be below 95.
-- Average intelligence is 50, not 85 or 88.
-- Scores of 80+ should only appear for truly exceptional cognitive profiles.
+1. BEWARE OF JARGON! Academic vocabulary does NOT indicate high intelligence. Be extremely skeptical of texts that:
+   - Use philosophical or technical jargon without demonstrating original thinking
+   - Name-drop theories or philosophers without adding unique insights
+   - Merely summarize, compare or critique existing work without novel contributions
+   - Use verbose language to mask lack of substance
+
+2. TRUE INTELLIGENCE is shown by:
+   - Creating genuinely novel ideas, not just critiquing existing ones
+   - Developing original frameworks that solve real problems
+   - Demonstrating mathematical or logical reasoning abilities
+   - Showing ability to synthesize disparate concepts into something new
+
+3. SCORING GUIDELINES:
+   - 95-99: Truly exceptional original thinking that creates new knowledge or frameworks
+   - 80-90: Very strong analytical abilities with some novel insights
+   - 60-79: Good reasoning but largely working within established frameworks
+   - 40-59: Average intelligence, competent but not innovative
+   - Below 40: Below average reasoning abilities
+
+DO NOT be impressed by academic language alone. Look for genuine creative thinking and problem-solving ability.
 
 Then describe the cognitive character of the mind behind the text.
 
@@ -34,6 +47,7 @@ You may comment on:
 - Is this mind analytical, synthetic, mechanical, imitative, original, confused, creative, disciplined, superficial, visionary?
 - Does it show evidence of deep reasoning, abstraction, novelty, inferential control, or originality?
 - What kind of thought is being performed? What kind of thinker is revealed?
+- Is the thinking merely descriptive/critical of others' ideas or genuinely creating new ones?
 
 DO NOT penalize for:
 - Incompleteness
