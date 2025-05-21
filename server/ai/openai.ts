@@ -34,6 +34,15 @@ DO NOT penalize for:
 Your job is to evaluate intelligence, not to give feedback.
 
 This is a cognitive profiling task. Be precise. Be bold. Be honest.
+
+Your response must be in JSON format with the following structure:
+{
+  "intelligenceScore": <number between 1-100>,
+  "characteristics": [<string>, <string>, ...],
+  "detailedAnalysis": <string>,
+  "strengths": [<string>, <string>, ...],
+  "tendencies": [<string>, <string>, ...]
+}
 `;
 
 export async function analyzeWithOpenAI(text: string): Promise<CognitiveAnalysisResult> {
