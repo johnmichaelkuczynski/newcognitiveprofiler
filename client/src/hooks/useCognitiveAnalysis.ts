@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CognitiveAnalysisResult } from "@/types/analysis";
+import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -7,8 +7,8 @@ export function useCognitiveAnalysis() {
   const [data, setData] = useState<CognitiveAnalysisResult | null>(null);
 
   const mutation = useMutation({
-    mutationFn: async (text: string) => {
-      const response = await apiRequest("POST", "/api/analyze", { text });
+    mutationFn: async ({ text, modelProvider }: { text: string; modelProvider: ModelProvider }) => {
+      const response = await apiRequest("POST", "/api/analyze", { text, modelProvider });
       const result = await response.json();
       return result as CognitiveAnalysisResult;
     },
@@ -17,8 +17,8 @@ export function useCognitiveAnalysis() {
     },
   });
 
-  const analyzeText = (text: string) => {
-    mutation.mutate(text);
+  const analyzeText = (text: string, modelProvider: ModelProvider = "openai") => {
+    mutation.mutate({ text, modelProvider });
   };
 
   const reset = () => {
