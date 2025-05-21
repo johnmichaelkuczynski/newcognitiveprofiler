@@ -17,6 +17,7 @@ export default function Home() {
   
   const {
     analyzeText,
+    analyzeFile,
     isLoading,
     isError,
     error,
@@ -48,12 +49,25 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setTextSample(text);
-    };
-    reader.readAsText(file);
+    // Check if this is a text file (for simple reading) or a document (for server processing)
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    
+    if (fileExt === 'txt' || fileExt === 'text') {
+      // For text files, use client-side reading
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        setTextSample(text);
+      };
+      reader.readAsText(file);
+    } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
+      // For PDF, Word documents - send directly to server for processing
+      analyzeFile(file, selectedModel);
+    } else {
+      // For unsupported formats
+      console.error("Unsupported file format");
+      // You could set an error state here and show a message to the user
+    }
   };
 
   return (

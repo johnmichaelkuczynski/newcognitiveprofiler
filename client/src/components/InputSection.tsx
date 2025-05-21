@@ -85,7 +85,7 @@ export default function InputSection({
               onClick={handleFileButtonClick}
             >
               <CloudUploadIcon className="h-5 w-5" />
-              <span>Upload Text File</span>
+              <span>Upload Document</span>
               <input 
                 ref={fileInputRef}
                 id="file-upload" 
