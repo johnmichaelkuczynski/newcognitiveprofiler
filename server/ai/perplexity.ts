@@ -1,10 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { CognitiveAnalysisResult } from '@/types/analysis';
-
-// the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "missing_api_key",
-});
+import { CognitiveAnalysisResult } from "@/types/analysis";
 
 // Instructions for the cognitive profiling
 const COGNITIVE_PROFILER_INSTRUCTIONS = `
@@ -45,33 +39,47 @@ Respond with a JSON object with the following structure (and nothing else):
 }
 `;
 
-export async function analyzeWithAnthropic(text: string): Promise<CognitiveAnalysisResult> {
+export async function analyzeWithPerplexity(text: string): Promise<CognitiveAnalysisResult> {
   try {
-    // Check if Anthropic API key is available
-    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === "missing_api_key") {
-      throw new Error("Anthropic API key is missing. Please set the ANTHROPIC_API_KEY environment variable.");
+    // Check if Perplexity API key is available
+    if (!process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY_API_KEY === "missing_api_key") {
+      throw new Error("Perplexity API key is missing. Please set the PERPLEXITY_API_KEY environment variable.");
     }
 
-    const response = await anthropic.messages.create({
-      model: "claude-3-7-sonnet-20250219",
-      max_tokens: 1500,
-      system: COGNITIVE_PROFILER_INSTRUCTIONS,
-      messages: [
-        { 
-          role: "user", 
-          content: text 
-        }
-      ],
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-sonar-small-128k-online",
+        messages: [
+          {
+            role: "system",
+            content: COGNITIVE_PROFILER_INSTRUCTIONS
+          },
+          {
+            role: "user",
+            content: text
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+        stream: false
+      })
     });
 
-    // Extract text content from response
-    let content = '';
-    if (response.content && response.content.length > 0 && 'text' in response.content[0]) {
-      content = response.content[0].text;
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Perplexity API error: ${response.status} ${errorData}`);
     }
+
+    const responseData = await response.json();
+    const content = responseData.choices[0]?.message?.content;
     
     if (!content) {
-      throw new Error("No response from Anthropic API");
+      throw new Error("No response from Perplexity API");
     }
 
     const result = JSON.parse(content) as CognitiveAnalysisResult;
@@ -84,13 +92,13 @@ export async function analyzeWithAnthropic(text: string): Promise<CognitiveAnaly
       !Array.isArray(result.strengths) ||
       !Array.isArray(result.tendencies)
     ) {
-      throw new Error("Invalid response format from Anthropic API");
+      throw new Error("Invalid response format from Perplexity API");
     }
 
     return result;
   } catch (error) {
-    console.error("Error in Anthropic API call:", error);
+    console.error("Error in Perplexity API call:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    throw new Error("Failed to analyze text with Anthropic: " + errorMessage);
+    throw new Error("Failed to analyze text with Perplexity: " + errorMessage);
   }
 }
