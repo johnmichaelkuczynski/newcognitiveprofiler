@@ -6,6 +6,9 @@ export interface CognitiveAnalysisResult {
   tendencies: string[];
 }
 
+export type ModelProvider = "openai" | "anthropic" | "perplexity";
+
 export interface AnalysisRequest {
   text: string;
+  modelProvider: ModelProvider;
 }
