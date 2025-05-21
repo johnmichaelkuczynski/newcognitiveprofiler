@@ -7,12 +7,13 @@ import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
-import { CognitiveAnalysisResult } from "@/types/analysis";
+import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
 import { AlertCircle } from "lucide-react";
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [textSample, setTextSample] = useState("");
+  const [selectedModel, setSelectedModel] = useState<ModelProvider>("openai");
   
   const {
     analyzeText,
@@ -31,7 +32,11 @@ export default function Home() {
     if (textSample.length < 100) {
       return;
     }
-    analyzeText(textSample);
+    analyzeText(textSample, selectedModel);
+  };
+
+  const handleModelChange = (model: ModelProvider) => {
+    setSelectedModel(model);
   };
 
   const handleReset = () => {
@@ -81,7 +86,9 @@ export default function Home() {
         
         {!isLoading && !analysisResult && !isError && (
           <InputSection 
-            textSample={textSample} 
+            textSample={textSample}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
             onTextChange={handleTextChange} 
             onAnalyze={handleAnalyze}
             onFileUpload={handleFileUpload}

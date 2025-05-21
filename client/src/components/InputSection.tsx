@@ -1,16 +1,22 @@
 import { CloudUploadIcon, ZapIcon } from "lucide-react";
 import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ModelProvider } from "@/types/analysis";
 
 interface InputSectionProps {
   textSample: string;
+  selectedModel: ModelProvider;
+  onModelChange: (value: ModelProvider) => void;
   onTextChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onAnalyze: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function InputSection({ 
-  textSample, 
+  textSample,
+  selectedModel,
+  onModelChange, 
   onTextChange, 
   onAnalyze,
   onFileUpload
@@ -52,6 +58,23 @@ export default function InputSection({
             </div>
           </div>
           <p className="text-sm text-neutral-500 mt-2">For best results, submit at least 300 characters of authentic writing.</p>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="model-select" className="block mb-2 text-sm font-medium text-neutral-700">
+            AI Model Provider
+          </label>
+          <Select value={selectedModel} onValueChange={(value: ModelProvider) => onModelChange(value)}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Select AI model provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
+              <SelectItem value="anthropic">Anthropic (Claude 3.7 Sonnet)</SelectItem>
+              <SelectItem value="perplexity">Perplexity (Llama 3.1 Sonar)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-neutral-500 mt-1">Different models may produce varying analysis results.</p>
         </div>
         
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
