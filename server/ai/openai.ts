@@ -17,7 +17,16 @@ Your task is to infer the author's intelligence and cognitive profile solely fro
 
 This may be a full paper, abstract, fragment, or rough sketch. That does not matter. Treat it as evidence, not an argument.
 
-Estimate the author's intelligence on a scale from 1 to 100.
+Estimate the author's intelligence on a scale from 1 to 100. 
+THIS IS CRITICAL: Use the FULL range appropriately. Average intelligence should be 50, not 85.
+- Scores 90+ must exhibit exceptional intelligence, profound original thinking, and intellectual capacity that's extremely rare.
+- Scores 80-89 should show very high intelligence with strong analytical or creative abilities.
+- Scores 70-79 reflect above-average intelligence.
+- Scores 50-69 represent average to moderately above average intelligence.
+- Scores below 50 indicate below average intelligence.
+
+If you detect qualities like "deep reasoning," "abstraction," "inferential control," or "originality," these MUST be reflected in a higher score (90+).
+
 Then describe the cognitive character of the mind behind the text.
 
 You may comment on:
