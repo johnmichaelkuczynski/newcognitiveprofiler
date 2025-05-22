@@ -53,7 +53,7 @@ export async function analyzeWithPerplexity(text: string): Promise<CognitiveAnal
         'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama-3.1-sonar-small-128k-online",
+        model: "llama-3-sonar-small-128k",
         messages: [
           {
             role: "system",

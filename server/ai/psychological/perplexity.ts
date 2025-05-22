@@ -74,15 +74,20 @@ async function makePerplexityRequest(
         messages: [
           {
             role: 'system',
-            content: 'You are a psychological profiler analyzing writing samples to generate insights.'
+            content: 'You are a psychological profiler analyzing writing samples to generate insights. Your response MUST be a valid JSON object with specific fields and nothing else - no markdown formatting, no explanation text, just pure JSON.'
+          },
+          {
+            role: 'system',
+            content: PSYCHOLOGICAL_PROFILER_INSTRUCTIONS
           },
           {
             role: 'user',
-            content: prompt
+            content: `Analyze the following text:\n\n${prompt}`
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 2000,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -111,11 +116,8 @@ export async function analyzeWithPerplexity(text: string): Promise<Psychological
     const apiKey = process.env.PERPLEXITY_API_KEY;
     const model = "llama-3-sonar-small-128k"; // Using Perplexity's supported model for structured output
     
-    // Format the prompt for Perplexity
-    const prompt = `${PSYCHOLOGICAL_PROFILER_INSTRUCTIONS}\n\nAnalyze the following text:\n\n${text}`;
-    
-    // Make the API request to Perplexity
-    const response = await makePerplexityRequest(prompt, model, apiKey);
+    // Make the API request to Perplexity - pass the text directly
+    const response = await makePerplexityRequest(text, model, apiKey);
     
     if (!response.text) {
       throw new Error("No response text from Perplexity API");
