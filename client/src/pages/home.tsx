@@ -133,47 +133,10 @@ export default function Home() {
       <main className="flex-grow container mx-auto px-4 py-6 sm:py-8 md:py-12">
         {!isLoading && !hasResult && !isError && (
           <>
-            <IntroSection />
-            
-            <div className="my-6">
-              <Tabs 
-                defaultValue="cognitive" 
-                value={analysisType}
-                onValueChange={handleAnalysisTypeChange}
-                className="w-full"
-              >
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
-                  <TabsTrigger value="cognitive" className="flex items-center gap-2">
-                    <BrainCircuit className="h-4 w-4" />
-                    <span>Cognitive</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="psychological" className="flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    <span>Psychological</span>
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="cognitive" className="mt-0">
-                  <h2 className="text-xl font-heading font-semibold text-secondary mb-4 flex items-center">
-                    <BrainCircuit className="mr-2 h-5 w-5 text-primary" />
-                    Cognitive Analysis
-                  </h2>
-                  <p className="text-neutral-600 mb-6">
-                    Analyzes your writing to profile your cognitive patterns, reasoning style, and intellectual characteristics.
-                  </p>
-                </TabsContent>
-                
-                <TabsContent value="psychological" className="mt-0">
-                  <h2 className="text-xl font-heading font-semibold text-secondary mb-4 flex items-center">
-                    <Heart className="mr-2 h-5 w-5 text-primary" />
-                    Psychological Analysis
-                  </h2>
-                  <p className="text-neutral-600 mb-6">
-                    Analyzes your writing to profile your emotional patterns, motivational structure, and interpersonal dynamics.
-                  </p>
-                </TabsContent>
-              </Tabs>
-            </div>
+            <IntroSection 
+              analysisType={analysisType}
+              onAnalysisTypeChange={handleAnalysisTypeChange}
+            />
             
             <InputSection 
               textSample={textSample}
