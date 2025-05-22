@@ -57,11 +57,7 @@ export async function analyzeWithPerplexity(text: string): Promise<CognitiveAnal
         messages: [
           {
             role: "system",
-            content: "You are a cognitive profiler. Your task is to analyze text and produce a cognitive profile in valid JSON format. Your response MUST be a valid JSON object with specific fields and nothing else - no markdown formatting, no explanation text, just pure JSON."
-          },
-          {
-            role: "system",
-            content: COGNITIVE_PROFILER_INSTRUCTIONS
+            content: "You are a cognitive profiler. Your task is to analyze text and produce a cognitive profile in valid JSON format.\n\n" + COGNITIVE_PROFILER_INSTRUCTIONS
           },
           {
             role: "user",
@@ -69,9 +65,7 @@ export async function analyzeWithPerplexity(text: string): Promise<CognitiveAnal
           }
         ],
         temperature: 0.7,
-        max_tokens: 1500,
-        stream: false,
-        response_format: { type: "json_object" }
+        max_tokens: 1500
       })
     });
 

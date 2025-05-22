@@ -10,10 +10,24 @@ export async function parseDocument(file: any): Promise<string> {
     
     // Handle different file types
     if (fileExt === '.pdf') {
-      // For PDFs, we'll just extract text from metadata for now
-      // since pdf-parse is having issues
-      return extractMetadataFromFile(file) || 
-             "PDF content could not be fully extracted. Consider converting to Word or text format for better results.";
+      try {
+        // For PDFs, extract text from buffer
+        // This is a simple extraction method looking for text patterns in the PDF
+        const content = file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 50000));
+        
+        // Try to find text content in the PDF
+        // Look for sequences that look like text (letters, numbers, punctuation)
+        const plainTextMatches = content.match(/[A-Za-z0-9 .,;:!?'"()[\]{}\/\\-_+=@#$%^&*|~`<>]{5,}/g) || [];
+        if (plainTextMatches.length > 0) {
+          return plainTextMatches.join(' ');
+        }
+        
+        // Fallback to metadata if text extraction fails
+        return extractMetadataFromFile(file);
+      } catch (pdfError) {
+        console.error('PDF parsing error:', pdfError);
+        return "PDF content could not be extracted. The file was received but text extraction failed. Please try a text-based format like .txt or .docx for better results.";
+      }
     } else if (fileExt === '.docx' || fileExt === '.doc') {
       return await parseWord(file.buffer);
     } else {
@@ -51,6 +65,8 @@ function extractMetadataFromFile(file: any): string {
   
   return metadata.join('\n\n');
 }
+
+
 
 /**
  * Parse Word documents using mammoth

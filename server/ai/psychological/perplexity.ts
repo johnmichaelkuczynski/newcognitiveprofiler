@@ -74,11 +74,7 @@ async function makePerplexityRequest(
         messages: [
           {
             role: 'system',
-            content: 'You are a psychological profiler analyzing writing samples to generate insights. Your response MUST be a valid JSON object with specific fields and nothing else - no markdown formatting, no explanation text, just pure JSON.'
-          },
-          {
-            role: 'system',
-            content: PSYCHOLOGICAL_PROFILER_INSTRUCTIONS
+            content: 'You are a psychological profiler analyzing writing samples to generate insights.\n\n' + PSYCHOLOGICAL_PROFILER_INSTRUCTIONS
           },
           {
             role: 'user',
@@ -86,8 +82,7 @@ async function makePerplexityRequest(
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
+        max_tokens: 2000
       })
     });
 
