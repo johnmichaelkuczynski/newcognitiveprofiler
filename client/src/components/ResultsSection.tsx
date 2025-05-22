@@ -355,6 +355,21 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 Text
               </Button>
               
+              {/* Comprehensive report button */}
+              <Button
+                variant="secondary" 
+                size="sm" 
+                className="bg-white/10 hover:bg-white/20 text-white"
+                onClick={() => {
+                  const textToAnalyze = Object.values(result)[0].detailedAnalysis;
+                  generateReport(textToAnalyze, activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider);
+                }}
+                disabled={isGenerating}
+              >
+                <BookOpen className="h-4 w-4 mr-1" />
+                {isGenerating ? "Generating..." : "Full Report"}
+              </Button>
+              
               {/* Export document dialog */}
               <Dialog>
                 <DialogTrigger asChild>
@@ -701,6 +716,13 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
           </div>
         </div>
       </div>
+      
+      {/* Comprehensive Report Modal */}
+      <ComprehensiveReportModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        report={currentReport}
+      />
     </section>
   );
 }
