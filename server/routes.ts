@@ -10,7 +10,8 @@ import { fromZodError } from "zod-validation-error";
 
 const analyzeRequestSchema = z.object({
   text: z.string().min(100, "Text must be at least 100 characters long"),
-  modelProvider: z.enum(["openai", "anthropic", "perplexity"]).default("openai")
+  modelProvider: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
+  analysisType: z.enum(["cognitive", "psychological"]).default("cognitive")
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -22,19 +23,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
-  // Cognitive analysis endpoint - using all providers
+  // Analysis endpoint - using all providers
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
-      const { text } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
+      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
       // Call all AI APIs and get combined results
-      const analyses = await analyzeTextWithAllProviders(text);
+      const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
       // Return all analysis results
       res.json(analyses);
     } catch (error) {
-      console.error("Error analyzing text with all providers:", error);
+      console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       
       if (error instanceof ZodError) {
         return res.status(400).json({ 
@@ -49,19 +50,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Cognitive analysis endpoint - single provider (legacy)
+  // Analysis endpoint - single provider
   app.post("/api/analyze", async (req, res) => {
     try {
       // Validate request body
-      const { text, modelProvider } = analyzeRequestSchema.parse(req.body);
+      const { text, modelProvider, analysisType } = analyzeRequestSchema.parse(req.body);
       
-      // Call appropriate AI API based on selected provider
-      const analysis = await analyzeText(text, modelProvider);
+      // Call appropriate AI API based on selected provider and analysis type
+      const analysis = await analyzeText(text, modelProvider, analysisType);
       
       // Return the analysis result
       res.json(analysis);
     } catch (error) {
-      console.error("Error analyzing text:", error);
+      console.error(`Error analyzing text (${req.body.analysisType || 'cognitive'}):`, error);
       
       if (error instanceof ZodError) {
         return res.status(400).json({ 
@@ -83,6 +84,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
       
+      // Get analysis type (defaults to cognitive)
+      const analysisType = req.body.analysisType || 'cognitive';
+      
       // Parse the document to extract text based on file type
       const extractedText = await parseDocument(req.file);
       
@@ -94,26 +98,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Analyze the extracted text using all AI providers
-      const analyses = await analyzeTextWithAllProviders(extractedText);
+      const analyses = await analyzeTextWithAllProviders(extractedText, analysisType);
       
       // Return all analysis results
       res.json(analyses);
     } catch (error) {
-      console.error("Error processing document with all providers:", error);
+      console.error(`Error processing document with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
       res.status(500).json({ message: errorMessage });
     }
   });
 
-  // File upload endpoint for document analysis (legacy single provider)
+  // File upload endpoint for document analysis (single provider)
   app.post("/api/upload-document", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Get model provider
+      // Get model provider and analysis type
       const modelProvider = req.body.modelProvider || 'openai';
+      const analysisType = req.body.analysisType || 'cognitive';
       
       // Parse the document to extract text based on file type
       const extractedText = await parseDocument(req.file);
@@ -125,13 +130,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Analyze the extracted text using the selected AI provider
-      const analysis = await analyzeText(extractedText, modelProvider as ModelProvider);
+      // Analyze the extracted text using the selected AI provider and analysis type
+      const analysis = await analyzeText(extractedText, modelProvider as ModelProvider, analysisType);
       
       // Return the analysis result
       res.json(analysis);
     } catch (error) {
-      console.error("Error processing document:", error);
+      console.error(`Error processing document (${req.body.analysisType || 'cognitive'}):`, error);
       const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
       res.status(500).json({ message: errorMessage });
     }
