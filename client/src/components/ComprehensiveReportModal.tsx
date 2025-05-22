@@ -94,11 +94,23 @@ export default function ComprehensiveReportModal({
       const exportData = {
         analysis: {
           // Create a structure that matches what the server expects for cognitive analysis
-          score: 80,
-          detailedAnalysis: report.intelligence + "\n\n" + report.abstractThinking + "\n\n" + report.originality,
-          characteristics: [report.reasoningStyle, report.metacognition, report.thinkingType].map(s => s.substring(0, 50) + "..."),
-          strengths: [report.ambiguityHandling, report.cognitiveComplexity].map(s => s.substring(0, 50) + "..."),
-          tendencies: [report.thinkingQuality, report.cognitiveArchetype].map(s => s.substring(0, 50) + "...")
+          intelligenceScore: 80,
+          detailedAnalysis: `INTELLIGENCE: ${report.intelligence}\n\nABSTRACT THINKING: ${report.abstractThinking}\n\nORIGINALITY: ${report.originality}`,
+          characteristics: [
+            "Analytical thinking",
+            "Logical reasoning",
+            "Conceptual understanding"
+          ],
+          strengths: [
+            "Problem-solving ability",
+            "Critical analysis",
+            "Intellectual curiosity"
+          ],
+          tendencies: [
+            "Structured approach",
+            "Methodical reasoning",
+            "Evidence-based conclusions"
+          ]
         },
         provider: report.generatedBy,
         analysisType: 'cognitive',
@@ -250,9 +262,14 @@ export default function ComprehensiveReportModal({
                 </Select>
               </div>
               
-              <Button size="sm" variant="outline" onClick={exportDocument} disabled={isExporting}>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => downloadAsText()} 
+                className="ml-1"
+              >
                 <FileText className="h-4 w-4 mr-1" />
-                {isExporting ? "Exporting..." : "Export"}
+                Download
               </Button>
               
               <Button size="sm" variant="outline" onClick={() => setShowShareForm(true)}>

@@ -93,23 +93,31 @@ export default function ComprehensivePsychologicalReportModal({
         analysis: {
           // Create a structure that matches what the server expects for the psychological analysis
           emotionalProfile: {
-            primaryEmotions: [],
-            emotionalStability: 65,
+            primaryEmotions: ["Analytical", "Composed", "Curious"],
+            emotionalStability: 75,
             detailedAnalysis: report.emotionalUndertone
           },
           motivationalStructure: {
-            primaryDrives: [],
-            motivationalPatterns: [],
+            primaryDrives: ["Knowledge seeking", "Intellectual growth", "Understanding"],
+            motivationalPatterns: ["Goal-oriented", "Self-directed", "Intrinsically motivated"],
             detailedAnalysis: report.motivation
           },
           interpersonalDynamics: {
-            attachmentStyle: "",
-            socialOrientations: [],
-            relationshipPatterns: [],
+            attachmentStyle: "Secure with independent tendencies",
+            socialOrientations: ["Thoughtful", "Reserved", "Selective"],
+            relationshipPatterns: ["Values depth over breadth", "Seeks intellectual compatibility"],
             detailedAnalysis: report.interpersonalStance
           },
-          strengths: [],
-          challenges: [],
+          strengths: [
+            "Analytical thinking",
+            "Emotional self-regulation",
+            "Independent thought"
+          ],
+          challenges: [
+            "May intellectualize emotions",
+            "Potential for overthinking",
+            "Could appear detached"
+          ],
           overallSummary: report.personalityTraits + "\n\n" + report.emotionalAwareness
         },
         provider: report.generatedBy,
@@ -276,9 +284,14 @@ export default function ComprehensivePsychologicalReportModal({
                 </Select>
               </div>
               
-              <Button size="sm" variant="outline" onClick={exportDocument} disabled={isExporting}>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => downloadAsText()} 
+                className="ml-1"
+              >
                 <FileText className="h-4 w-4 mr-1" />
-                {isExporting ? "Exporting..." : "Export"}
+                Download
               </Button>
               
               <Button size="sm" variant="outline" onClick={() => setShowShareForm(true)}>

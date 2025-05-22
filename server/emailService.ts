@@ -31,7 +31,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 
     const message = {
       to: options.to,
-      from: 'noreply@cognitiveprofile.com', // Replace with your verified sender
+      from: 'test@example.com', // This needs to be a verified sender in SendGrid
       subject: options.subject,
       text: options.text || '',
       html: options.html || '',
