@@ -29,14 +29,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useComprehensiveReport } from "@/hooks/useComprehensiveReport";
 import ComprehensiveReportModal from "@/components/ComprehensiveReportModal";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-interface ResultsSectionProps {
-  result: MultiProviderAnalysisResult;
-  onNewAnalysis: () => void;
-}
-
-// Map of provider names to friendly display names and icons
-const providerInfo: Record<ModelProvider, { name: string; color: string; icon: any }> = {
+// Provider information for display
+const providerInfo: Record<string, {
+  name: string;
+  color: string;
+  icon: React.ComponentType<any>;
+}> = {
   openai: { name: "OpenAI", color: "bg-emerald-600", icon: Sparkles },
   anthropic: { name: "Anthropic", color: "bg-blue-600", icon: BrainCircuit },
   perplexity: { name: "Perplexity", color: "bg-purple-600", icon: Lightbulb }
@@ -64,77 +64,51 @@ function CognitiveProfileCard({
         <h3 className="font-heading font-semibold">{name} Analysis</h3>
       </div>
       
-      <div className="p-4">
-        {/* Intelligence Score */}
-        <div className="mb-4">
-          <h4 className="font-medium text-sm text-secondary-light mb-2">Intelligence Estimate</h4>
-          <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-neutral-600 text-sm">Score</span>
-              <span className="text-xl font-bold text-primary">{result.intelligenceScore}</span>
-            </div>
-            <div className="w-full h-3 bg-neutral-200 rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full" style={{ width: `${result.intelligenceScore}%` }}></div>
-            </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium">Intelligence Score</span>
+            <span className="text-primary font-semibold">{result.intelligenceScore}/100</span>
+          </div>
+          <Progress value={result.intelligenceScore} className="h-2" />
+        </div>
+        
+        <div className="mb-6">
+          <h4 className="font-medium text-secondary-light mb-2">Cognitive Characteristics</h4>
+          <div className="flex flex-wrap gap-2">
+            {result.characteristics.map((characteristic, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-secondary/10 rounded-full text-secondary-dark text-sm"
+              >
+                {characteristic}
+              </span>
+            ))}
           </div>
         </div>
         
-        {/* Characteristics */}
-        <div className="mb-4">
-          <h4 className="font-medium text-sm text-secondary-light mb-2">Cognitive Characteristics</h4>
-          <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200 max-h-24 overflow-y-auto">
-            <ul className="space-y-1">
-              {result.characteristics.map((characteristic, idx) => (
-                <li key={idx} className="flex items-center gap-1 text-xs">
-                  <Check className="h-3 w-3 text-primary" />
-                  <span className="text-neutral-700">{characteristic}</span>
-                </li>
+        <div className="mb-6">
+          <h4 className="font-medium text-secondary-light mb-2">Analysis</h4>
+          <p className="text-neutral-700">{result.detailedAnalysis}</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h4 className="font-medium text-secondary-light mb-2">Cognitive Strengths</h4>
+            <ul className="list-disc pl-4 space-y-1">
+              {result.strengths.map((strength, index) => (
+                <li key={index} className="text-neutral-700">{strength}</li>
               ))}
             </ul>
           </div>
-        </div>
-        
-        {/* Detailed Analysis */}
-        <div className="mb-4">
-          <h4 className="font-medium text-sm text-secondary-light mb-2">Detailed Analysis</h4>
-          <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200 max-h-48 overflow-y-auto">
-            <div className="prose prose-sm max-w-none text-neutral-700 text-xs">
-              {result.detailedAnalysis.split('\n').map((paragraph, idx) => (
-                <p key={idx} className="mb-2">{paragraph}</p>
+          
+          <div>
+            <h4 className="font-medium text-secondary-light mb-2">Cognitive Tendencies</h4>
+            <ul className="list-disc pl-4 space-y-1">
+              {result.tendencies.map((tendency, index) => (
+                <li key={index} className="text-neutral-700">{tendency}</li>
               ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Strengths & Tendencies */}
-        <div>
-          <h4 className="font-medium text-sm text-secondary-light mb-2">Reasoning Style</h4>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200 max-h-32 overflow-y-auto">
-              <h5 className="font-medium text-primary text-xs mb-1">Strengths</h5>
-              <ul className="space-y-1 text-neutral-700 text-xs">
-                {result.strengths.map((strength, idx) => (
-                  <li key={idx} className="flex items-start gap-1">
-                    <Check className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
-                    <span>{strength}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200 max-h-32 overflow-y-auto">
-              <h5 className="font-medium text-primary text-xs mb-1">Tendencies</h5>
-              <ul className="space-y-1 text-neutral-700 text-xs">
-                {result.tendencies.map((tendency, idx) => (
-                  <li key={idx} className="flex items-start gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-neutral-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{tendency}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </ul>
           </div>
         </div>
       </div>
@@ -142,16 +116,23 @@ function CognitiveProfileCard({
   );
 }
 
+interface ResultsSectionProps {
+  result: MultiProviderAnalysisResult;
+  onNewAnalysis: () => void;
+}
+
 export default function ResultsSection({ result, onNewAnalysis }: ResultsSectionProps) {
+  const [activeTab, setActiveTab] = useState("all-profiles");
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("all-profiles");
   const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
   const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [senderName, setSenderName] = useState("");
+  
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Use the comprehensive report hook
   const { 
@@ -162,12 +143,17 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     closeModal 
   } = useComprehensiveReport();
 
-  // Calculate average intelligence score across all providers (filtering out non-provider entries)
+  // Calculate average intelligence score across all providers
+  // Filter entries that are actual providers (not originalText or other properties)
   const validProviders = Object.entries(result)
-    .filter(([key]) => key !== 'originalText' && providerInfo[key as ModelProvider]); // Only include valid providers
+    .filter(([key]) => 
+      key !== 'originalText' && 
+      providerInfo[key as ModelProvider] && 
+      typeof result[key as ModelProvider] !== 'string'
+    );
   
   const averageScore = validProviders.length > 0 ? Math.round(
-    validProviders.reduce((sum, [_, profile]) => sum + profile.intelligenceScore, 0) / validProviders.length
+    validProviders.reduce((sum, [_, profile]) => sum + (profile as CognitiveAnalysisResult).intelligenceScore, 0) / validProviders.length
   ) : 0;
 
   const copyResults = () => {
@@ -179,13 +165,16 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     resultsText += `Average Intelligence Score: ${averageScore}/100\n\n`;
     
     // Add individual model results
-    Object.entries(result).forEach(([provider, analysis]) => {
-      resultsText += `${providerInfo[provider as ModelProvider].name} ANALYSIS:\n`;
-      resultsText += `Intelligence Score: ${analysis.intelligenceScore}/100\n`;
-      resultsText += `Characteristics: ${analysis.characteristics.join(', ')}\n`;
-      resultsText += `Detailed Analysis: ${analysis.detailedAnalysis}\n`;
-      resultsText += `Strengths: ${analysis.strengths.join(', ')}\n`;
-      resultsText += `Tendencies: ${analysis.tendencies.join(', ')}\n\n`;
+    validProviders.forEach(([provider, analysis]) => {
+      const typedAnalysis = analysis as CognitiveAnalysisResult;
+      const providerName = providerInfo[provider as ModelProvider]?.name || provider;
+      
+      resultsText += `${providerName} ANALYSIS:\n`;
+      resultsText += `Intelligence Score: ${typedAnalysis.intelligenceScore}/100\n`;
+      resultsText += `Characteristics: ${typedAnalysis.characteristics.join(', ')}\n`;
+      resultsText += `Detailed Analysis: ${typedAnalysis.detailedAnalysis}\n`;
+      resultsText += `Strengths: ${typedAnalysis.strengths.join(', ')}\n`;
+      resultsText += `Tendencies: ${typedAnalysis.tendencies.join(', ')}\n\n`;
     });
     
     navigator.clipboard.writeText(resultsText).then(() => {
@@ -203,13 +192,16 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     resultsText += `Average Intelligence Score: ${averageScore}/100\n\n`;
     
     // Add individual model results
-    Object.entries(result).forEach(([provider, analysis]) => {
-      resultsText += `${providerInfo[provider as ModelProvider].name} ANALYSIS:\n`;
-      resultsText += `Intelligence Score: ${analysis.intelligenceScore}/100\n`;
-      resultsText += `Characteristics: ${analysis.characteristics.join(', ')}\n`;
-      resultsText += `Detailed Analysis: ${analysis.detailedAnalysis}\n`;
-      resultsText += `Strengths: ${analysis.strengths.join(', ')}\n`;
-      resultsText += `Tendencies: ${analysis.tendencies.join(', ')}\n\n`;
+    validProviders.forEach(([provider, analysis]) => {
+      const typedAnalysis = analysis as CognitiveAnalysisResult;
+      const providerName = providerInfo[provider as ModelProvider]?.name || provider;
+      
+      resultsText += `${providerName} ANALYSIS:\n`;
+      resultsText += `Intelligence Score: ${typedAnalysis.intelligenceScore}/100\n`;
+      resultsText += `Characteristics: ${typedAnalysis.characteristics.join(', ')}\n`;
+      resultsText += `Detailed Analysis: ${typedAnalysis.detailedAnalysis}\n`;
+      resultsText += `Strengths: ${typedAnalysis.strengths.join(', ')}\n`;
+      resultsText += `Tendencies: ${typedAnalysis.tendencies.join(', ')}\n\n`;
     });
     
     // Create a blob and download link
@@ -217,61 +209,59 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'cognitive-profile-analysis.txt';
+    a.download = 'cognitive-analysis.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
   
+  // Handle exporting document
   const exportDocument = async () => {
     try {
       setIsExporting(true);
       
-      // Get the result for the selected provider
-      const providerResult = result[selectedProvider];
+      // Create document based on selected provider
+      // Use our own analysis results as content
+      const selectedResult = result[selectedProvider];
+      if (!selectedResult) {
+        throw new Error(`No analysis results found for ${selectedProvider}`);
+      }
       
-      // Create form data for the export request
-      const exportData = {
-        analysis: providerResult,
+      // Create request body
+      const requestData = {
         provider: selectedProvider,
-        analysisType: 'cognitive',
-        format: documentFormat
+        format: documentFormat,
+        analysis: selectedResult,
       };
       
-      // Make API request to generate document
-      const response = await fetch('/api/export-document', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(exportData),
-      });
+      // Send request to server
+      const response = await apiRequest("POST", "/api/export-document", requestData);
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to export document');
+        throw new Error(errorData.message || "Failed to export document");
       }
       
-      // Get the document as a blob
+      // Get document as blob
       const blob = await response.blob();
       
       // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cognitive-analysis-${selectedProvider}-${Date.now()}.${documentFormat}`;
+      a.download = `cognitive-analysis.${documentFormat}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
       toast({
-        title: "Document exported successfully",
-        description: `Your analysis has been exported as a ${documentFormat.toUpperCase()} file.`,
+        title: "Document exported",
+        description: `Cognitive profile exported as ${documentFormat.toUpperCase()} successfully.`,
       });
     } catch (error) {
-      console.error('Error exporting document:', error);
+      console.error('Export error:', error);
       toast({
         variant: "destructive",
         title: "Export failed",
@@ -282,54 +272,42 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     }
   };
   
+  // Handle sharing via email
   const shareViaEmail = async () => {
     try {
-      if (!recipientEmail) {
-        toast({
-          variant: "destructive",
-          title: "Email required",
-          description: "Please enter a recipient email address.",
-        });
-        return;
-      }
-      
       setIsSharing(true);
       
-      // Get the result for the selected provider
-      const providerResult = result[selectedProvider];
+      if (!recipientEmail) {
+        throw new Error("Please provide a recipient email address");
+      }
       
-      // Create data for the email sharing request
-      const shareData = {
-        analysis: providerResult,
+      // Use our own analysis results as content for the selected provider
+      const selectedResult = result[selectedProvider];
+      if (!selectedResult) {
+        throw new Error(`No analysis results found for ${selectedProvider}`);
+      }
+      
+      // Create request body
+      const requestData = {
         provider: selectedProvider,
-        analysisType: 'cognitive',
         format: documentFormat,
+        analysis: selectedResult,
         recipientEmail,
-        senderName
+        senderName: senderName || undefined,
       };
       
-      // Make API request to share via email
-      const response = await fetch('/api/share-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(shareData),
-      });
+      // Send request to server
+      const response = await apiRequest("POST", "/api/share-via-email", requestData);
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to share via email');
+        throw new Error(errorData.message || "Failed to send email");
       }
       
       toast({
-        title: "Analysis shared successfully",
-        description: `Your analysis has been sent to ${recipientEmail}.`,
+        title: "Email sent",
+        description: `Cognitive profile shared with ${recipientEmail} successfully.`,
       });
-      
-      // Reset form
-      setRecipientEmail("");
-      setSenderName("");
     } catch (error) {
       console.error('Error sharing via email:', error);
       toast({
@@ -349,7 +327,18 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     
     // Use the current active tab provider or selected provider
     const provider = activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider;
-    const analysis = result[provider];
+    
+    // Make sure provider exists in the results
+    if (!result[provider] || typeof result[provider] === 'string') {
+      toast({
+        variant: "destructive",
+        title: "Report generation failed",
+        description: `No analysis results found for ${provider}`,
+      });
+      return;
+    }
+
+    const analysis = result[provider] as CognitiveAnalysisResult;
     
     // Combine all text fields from the cognitive analysis
     textToAnalyze = analysis.detailedAnalysis + "\n\n";
@@ -561,43 +550,40 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
               </Dialog>
             </div>
           </div>
+          
+          {/* Display summary stats */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-white/90">Average Intelligence Score</span>
+              <span className="text-white font-medium">{averageScore}/100</span>
+            </div>
+            <Progress 
+              value={averageScore} 
+              className="h-2.5 bg-white/20" 
+              indicatorClassName="bg-white" 
+            />
+          </div>
         </div>
         
         <CardContent className="p-6">
           <div className="mb-6">
-            <h3 className="font-heading text-lg mb-4">Combined Intelligence Estimate</h3>
-            <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-neutral-600">Average Score</span>
-                <span className="text-3xl font-bold text-primary">{averageScore}</span>
-              </div>
-              <div className="w-full h-4 bg-neutral-200 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: `${averageScore}%` }}></div>
-              </div>
-              <div className="flex justify-between mt-1 text-xs text-neutral-400">
-                <span>1</span>
-                <span>100</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mb-6">
             <h3 className="font-heading text-lg mb-4">Provider Comparison</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(result)
-                .filter(([key]) => key !== 'originalText') // Filter out the originalText property
-                .map(([provider, analysis]) => (
-                <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    {React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-4 w-4 text-primary" })}
-                    <span className="font-medium">{providerInfo[provider as ModelProvider].name}</span>
+              {validProviders.map(([provider, analysis]) => {
+                const typedAnalysis = analysis as CognitiveAnalysisResult;
+                return (
+                  <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      {React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-4 w-4 text-primary" })}
+                      <span className="font-medium">{providerInfo[provider as ModelProvider].name}</span>
+                    </div>
+                    <div className="text-center py-2">
+                      <span className="text-3xl font-bold text-primary">{typedAnalysis.intelligenceScore}</span>
+                    </div>
+                    <div className="text-center text-sm text-neutral-500">Intelligence Score</div>
                   </div>
-                  <div className="text-center py-2">
-                    <span className="text-3xl font-bold text-primary">{analysis.intelligenceScore}</span>
-                  </div>
-                  <div className="text-center text-sm text-neutral-500">Intelligence Score</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           
@@ -613,36 +599,24 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
               
               <TabsContent value="all-profiles" className="space-y-4 mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {Object.entries(result).map(([provider, analysis]) => (
+                  {validProviders.map(([provider, analysis]) => (
                     <CognitiveProfileCard 
                       key={provider} 
-                      result={analysis} 
+                      result={analysis as CognitiveAnalysisResult} 
                       providerKey={provider as ModelProvider} 
                     />
                   ))}
                 </div>
               </TabsContent>
               
-              <TabsContent value="openai" className="mt-4">
-                <CognitiveProfileCard 
-                  result={result.openai} 
-                  providerKey="openai" 
-                />
-              </TabsContent>
-              
-              <TabsContent value="anthropic" className="mt-4">
-                <CognitiveProfileCard 
-                  result={result.anthropic} 
-                  providerKey="anthropic" 
-                />
-              </TabsContent>
-              
-              <TabsContent value="perplexity" className="mt-4">
-                <CognitiveProfileCard 
-                  result={result.perplexity} 
-                  providerKey="perplexity" 
-                />
-              </TabsContent>
+              {validProviders.map(([provider]) => (
+                <TabsContent key={provider} value={provider} className="mt-4">
+                  <CognitiveProfileCard 
+                    result={result[provider as ModelProvider] as CognitiveAnalysisResult} 
+                    providerKey={provider as ModelProvider} 
+                  />
+                </TabsContent>
+              ))}
             </Tabs>
           </div>
         </CardContent>
