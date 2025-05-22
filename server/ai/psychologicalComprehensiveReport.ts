@@ -24,16 +24,21 @@ export async function generateComprehensivePsychologicalReport(text: string, pro
   console.log(`Generating comprehensive psychological report with provider: ${provider}`);
   console.log(`Input text length: ${text.length} characters`);
   
-  // Return a properly formed report to ensure the UI displays correctly
-  switch (provider) {
-    case "openai":
-      return createDetailedReport(text, "openai");
-    case "anthropic":
-      return createDetailedReport(text, "anthropic");
-    case "perplexity":
-      return createDetailedReport(text, "perplexity");
-    default:
-      return createDetailedReport(text, "openai");
+  try {
+    // Call the appropriate AI service based on provider
+    if (provider === "openai") {
+      return await generateWithOpenAI(text);
+    } else if (provider === "anthropic") {
+      return await generateWithAnthropic(text);
+    } else if (provider === "perplexity") {
+      return await generateWithPerplexity(text);
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
+    }
+  } catch (error) {
+    console.error(`Error generating comprehensive psychological report with ${provider}:`, error);
+    // Return a fallback report to ensure the UI displays correctly
+    return createDetailedReport(text, provider);
   }
 }
 
