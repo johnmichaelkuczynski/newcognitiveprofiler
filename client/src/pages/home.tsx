@@ -143,6 +143,7 @@ export default function Home() {
               onTextChange={handleTextChange} 
               onAnalyze={handleAnalyze}
               onFileUpload={handleFileUpload}
+              analysisType={analysisType}
             />
           </>
         )}

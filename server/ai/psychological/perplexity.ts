@@ -109,7 +109,7 @@ export async function analyzeWithPerplexity(text: string): Promise<Psychological
 
     // Prepare the API request
     const apiKey = process.env.PERPLEXITY_API_KEY;
-    const model = "mistral-8x7b-instruct"; // Using Perplexity's recommended model for structured output
+    const model = "llama-3-sonar-small-128k"; // Using Perplexity's supported model for structured output
     
     // Format the prompt for Perplexity
     const prompt = `${PSYCHOLOGICAL_PROFILER_INSTRUCTIONS}\n\nAnalyze the following text:\n\n${text}`;
