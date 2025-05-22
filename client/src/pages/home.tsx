@@ -62,11 +62,11 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    if (analysisType === "cognitive") {
-      resetCognitive();
-    } else {
-      resetPsychological();
-    }
+    // Reset both analysis types to ensure a clean state
+    resetCognitive();
+    resetPsychological();
+    
+    // Clear the text input
     setTextSample("");
   };
 
