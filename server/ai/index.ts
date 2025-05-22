@@ -1,7 +1,10 @@
-import { CognitiveAnalysisResult } from "@/types/analysis";
+import { CognitiveAnalysisResult, PsychologicalAnalysisResult, AnalysisType } from "@/types/analysis";
 import { analyzeWithOpenAI } from "./openai";
 import { analyzeWithAnthropic } from "./anthropic";
 import { analyzeWithPerplexity } from "./perplexity";
+import { analyzeWithOpenAI as analyzePsychologicalWithOpenAI } from "./psychological/openai";
+import { analyzeWithAnthropic as analyzePsychologicalWithAnthropic } from "./psychological/anthropic";
+import { analyzeWithPerplexity as analyzePsychologicalWithPerplexity } from "./psychological/perplexity";
 
 // Define the supported model providers
 export type ModelProvider = "openai" | "anthropic" | "perplexity";
@@ -56,9 +59,9 @@ function validateAnalysisResult(result: CognitiveAnalysisResult): { valid: boole
 }
 
 /**
- * Analyzes text using a single provider with validation and resubmission
+ * Analyzes text using a single provider with validation and resubmission for cognitive analysis
  */
-async function analyzeTextWithProvider(text: string, provider: ModelProvider, validationFeedback: string = ""): Promise<CognitiveAnalysisResult> {
+async function analyzeCognitiveTextWithProvider(text: string, provider: ModelProvider, validationFeedback: string = ""): Promise<CognitiveAnalysisResult> {
   let maxAttempts = 3;
   let attempts = 0;
   let result: CognitiveAnalysisResult | undefined;
@@ -89,57 +92,88 @@ async function analyzeTextWithProvider(text: string, provider: ModelProvider, va
       }
       
       // Validate the result
-      validation = validateAnalysisResult(result);
+      if (result) {
+        validation = validateAnalysisResult(result);
+      }
       
       if (!validation.valid && attempts < maxAttempts) {
-        console.log(`${provider} analysis attempt ${attempts} failed validation: ${validation.issues.join(', ')}`);
+        console.log(`${provider} cognitive analysis attempt ${attempts} failed validation: ${validation.issues.join(', ')}`);
         // Try again with specific feedback
-        return await analyzeTextWithProvider(text, provider, validation.issues.join(', '));
+        return await analyzeCognitiveTextWithProvider(text, provider, validation.issues.join(', '));
       }
     } catch (error: any) {
-      console.error(`Error in ${provider} analysis:`, error);
-      throw new Error(`Analysis with ${provider} failed: ${error.message || 'Unknown error'}`);
+      console.error(`Error in ${provider} cognitive analysis:`, error);
+      throw new Error(`Cognitive analysis with ${provider} failed: ${error.message || 'Unknown error'}`);
     }
   }
   
   if (!validation.valid) {
-    console.warn(`${provider} analysis still invalid after ${attempts} attempts: ${validation.issues.join(', ')}`);
+    console.warn(`${provider} cognitive analysis still invalid after ${attempts} attempts: ${validation.issues.join(', ')}`);
   }
   
   // If we've reached here, we have a result (even if not perfectly valid)
   if (!result) {
-    throw new Error(`Analysis with ${provider} failed to produce a result`);
+    throw new Error(`Cognitive analysis with ${provider} failed to produce a result`);
   }
   
   return result;
 }
 
 /**
- * Analyzes text using the specified provider
+ * Analyzes text using a single provider for psychological analysis
  */
-export async function analyzeText(text: string, provider: ModelProvider = "openai"): Promise<CognitiveAnalysisResult> {
+async function analyzePsychologicalTextWithProvider(text: string, provider: ModelProvider): Promise<PsychologicalAnalysisResult> {
   try {
-    const result = await analyzeTextWithProvider(text, provider);
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    throw new Error(`Analysis failed: ${errorMessage}`);
+    // Call the appropriate AI service based on the provider
+    switch (provider) {
+      case "openai":
+        return await analyzePsychologicalWithOpenAI(text);
+      case "anthropic":
+        return await analyzePsychologicalWithAnthropic(text);
+      case "perplexity":
+        return await analyzePsychologicalWithPerplexity(text);
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
+    }
+  } catch (error: any) {
+    console.error(`Error in ${provider} psychological analysis:`, error);
+    throw new Error(`Psychological analysis with ${provider} failed: ${error.message || 'Unknown error'}`);
   }
 }
 
 /**
- * Analyzes text using all providers and returns all results
+ * Generic function that analyzes text using the specified provider and analysis type
  */
-export async function analyzeTextWithAllProviders(text: string): Promise<Record<ModelProvider, CognitiveAnalysisResult>> {
+export async function analyzeText(
+  text: string, 
+  provider: ModelProvider = "openai", 
+  analysisType: AnalysisType = "cognitive"
+): Promise<CognitiveAnalysisResult | PsychologicalAnalysisResult> {
+  try {
+    if (analysisType === "cognitive") {
+      return await analyzeCognitiveTextWithProvider(text, provider);
+    } else {
+      return await analyzePsychologicalTextWithProvider(text, provider);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`${analysisType} analysis failed: ${errorMessage}`);
+  }
+}
+
+/**
+ * Analyzes text using all providers for cognitive analysis and returns all results
+ */
+export async function analyzeCognitiveTextWithAllProviders(text: string): Promise<Record<ModelProvider, CognitiveAnalysisResult>> {
   const providers: ModelProvider[] = ["openai", "anthropic", "perplexity"];
   const results: Partial<Record<ModelProvider, CognitiveAnalysisResult>> = {};
   
   for (const provider of providers) {
     try {
-      console.log(`Starting analysis with ${provider}...`);
-      const result = await analyzeTextWithProvider(text, provider);
+      console.log(`Starting cognitive analysis with ${provider}...`);
+      const result = await analyzeCognitiveTextWithProvider(text, provider);
       results[provider] = result;
-      console.log(`Completed analysis with ${provider}`);
+      console.log(`Completed cognitive analysis with ${provider}`);
     } catch (error) {
       console.error(`Error analyzing with ${provider}:`, error);
       // Continue with other providers even if one fails
@@ -147,8 +181,48 @@ export async function analyzeTextWithAllProviders(text: string): Promise<Record<
   }
   
   if (Object.keys(results).length === 0) {
-    throw new Error("All analysis providers failed");
+    throw new Error("All cognitive analysis providers failed");
   }
   
   return results as Record<ModelProvider, CognitiveAnalysisResult>;
+}
+
+/**
+ * Analyzes text using all providers for psychological analysis and returns all results
+ */
+export async function analyzePsychologicalTextWithAllProviders(text: string): Promise<Record<ModelProvider, PsychologicalAnalysisResult>> {
+  const providers: ModelProvider[] = ["openai", "anthropic", "perplexity"];
+  const results: Partial<Record<ModelProvider, PsychologicalAnalysisResult>> = {};
+  
+  for (const provider of providers) {
+    try {
+      console.log(`Starting psychological analysis with ${provider}...`);
+      const result = await analyzePsychologicalTextWithProvider(text, provider);
+      results[provider] = result;
+      console.log(`Completed psychological analysis with ${provider}`);
+    } catch (error) {
+      console.error(`Error analyzing with ${provider}:`, error);
+      // Continue with other providers even if one fails
+    }
+  }
+  
+  if (Object.keys(results).length === 0) {
+    throw new Error("All psychological analysis providers failed");
+  }
+  
+  return results as Record<ModelProvider, PsychologicalAnalysisResult>;
+}
+
+/**
+ * General function that handles both types of analysis with all providers
+ */
+export async function analyzeTextWithAllProviders(
+  text: string, 
+  analysisType: AnalysisType = "cognitive"
+): Promise<Record<ModelProvider, CognitiveAnalysisResult | PsychologicalAnalysisResult>> {
+  if (analysisType === "cognitive") {
+    return await analyzeCognitiveTextWithAllProviders(text);
+  } else {
+    return await analyzePsychologicalTextWithAllProviders(text);
+  }
 }
