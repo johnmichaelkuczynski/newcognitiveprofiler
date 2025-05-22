@@ -1,5 +1,5 @@
 import { PsychologicalAnalysisResult } from '@/types/analysis';
-import { apiRequest } from '../../lib/perplexityApi';
+import fetch from 'node-fetch';
 
 // Instructions for the psychological profiling
 const PSYCHOLOGICAL_PROFILER_INSTRUCTIONS = `
@@ -54,6 +54,52 @@ Respond with a JSON object with the following structure (and nothing else):
 }
 `;
 
+/**
+ * Helper for making requests to the Perplexity API
+ */
+async function makePerplexityRequest(
+  prompt: string,
+  model: string,
+  apiKey: string
+): Promise<{ text: string }> {
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a psychological profiler analyzing writing samples to generate insights.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Perplexity API error: ${response.status} ${errorBody}`);
+    }
+
+    const data = await response.json();
+    // Type assertion after we've parsed the JSON
+    return { text: (data as any).choices?.[0]?.message?.content || '' };
+  } catch (error) {
+    console.error('Error in Perplexity API request:', error);
+    throw error;
+  }
+}
+
 export async function analyzeWithPerplexity(text: string): Promise<PsychologicalAnalysisResult> {
   try {
     // Check if Perplexity API key is available
@@ -69,7 +115,7 @@ export async function analyzeWithPerplexity(text: string): Promise<Psychological
     const prompt = `${PSYCHOLOGICAL_PROFILER_INSTRUCTIONS}\n\nAnalyze the following text:\n\n${text}`;
     
     // Make the API request to Perplexity
-    const response = await apiRequest(prompt, model, apiKey);
+    const response = await makePerplexityRequest(prompt, model, apiKey);
     
     if (!response.text) {
       throw new Error("No response text from Perplexity API");
