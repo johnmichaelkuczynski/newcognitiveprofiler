@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen } from "lucide-react";
+import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen, FileText2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -18,6 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
 import { MultiProviderAnalysisResult } from "@/hooks/useCognitiveAnalysis";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -633,6 +639,29 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
         </CardContent>
       </div>
       
+      {/* Original Analyzed Text */}
+      {result.originalText && (
+        <div className="mt-6 mb-4 bg-white rounded-xl shadow-card border border-neutral-200 overflow-hidden">
+          <Accordion type="single" collapsible>
+            <AccordionItem value="analyzed-text" className="border-none">
+              <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-secondary" />
+                  <span className="font-heading font-medium">View Original Analyzed Text</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="px-6 pb-4">
+                  <div className="p-4 bg-gray-50 rounded-md text-sm whitespace-pre-wrap max-h-96 overflow-y-auto border border-gray-200">
+                    {result.originalText}
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+      )}
+
       <div className="flex justify-center mt-6">
         <Button 
           variant="outline" 
