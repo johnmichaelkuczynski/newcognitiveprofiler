@@ -265,11 +265,12 @@ export default function ComprehensiveReportModal({
               <Button 
                 size="sm" 
                 variant="outline" 
-                onClick={() => downloadAsText()} 
+                onClick={exportDocument} 
+                disabled={isExporting}
                 className="ml-1"
               >
                 <FileText className="h-4 w-4 mr-1" />
-                Download
+                {isExporting ? "Exporting..." : `Export ${documentFormat.toUpperCase()}`}
               </Button>
               
               <Button size="sm" variant="outline" onClick={() => setShowShareForm(true)}>

@@ -21,23 +21,8 @@ export function generateWordDocument(
     }]
   });
 
-  // Return document as buffer
-  return new Promise<Buffer>((resolve, reject) => {
-    try {
-      // Generate a buffer using the Packer
-      Packer.toBuffer(doc)
-        .then(buffer => {
-          resolve(buffer);
-        })
-        .catch(error => {
-          console.error('Error packing document to buffer:', error);
-          reject(error);
-        });
-    } catch (error) {
-      console.error('Error generating Word document:', error);
-      reject(error);
-    }
-  });
+  // Return document as buffer asynchronously
+  return Packer.toBuffer(doc);
 }
 
 /**
