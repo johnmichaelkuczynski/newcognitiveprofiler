@@ -708,6 +708,29 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
         ))}
       </Tabs>
       
+      {/* Original Analyzed Text */}
+      {result.originalText && (
+        <div className="mt-6 mb-4 bg-white rounded-xl shadow-card border border-neutral-200 overflow-hidden">
+          <Accordion type="single" collapsible>
+            <AccordionItem value="analyzed-text" className="border-none">
+              <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-50">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-secondary" />
+                  <span className="font-heading font-medium">View Original Analyzed Text</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="px-6 pb-4">
+                  <div className="p-4 bg-gray-50 rounded-md text-sm whitespace-pre-wrap max-h-96 overflow-y-auto border border-gray-200">
+                    {result.originalText}
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+      )}
+      
       {/* Comprehensive Psychological Report Modal */}
       <ComprehensivePsychologicalReportModal
         isOpen={isModalOpen}
