@@ -626,23 +626,148 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
               <TabsContent value="all-profiles" className="space-y-4 mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {validProviders.map(([provider, analysis]) => (
-                    <CognitiveProfileCard 
-                      key={provider} 
-                      result={analysis as CognitiveAnalysisResult} 
-                      providerKey={provider as ModelProvider}
-                      onGenerateReport={handleFullReport}
-                    />
+                    <div key={provider} className="bg-white rounded-xl shadow-md border border-neutral-200 overflow-hidden">
+                      <div className={cn("p-4 text-white flex items-center justify-between gap-2", providerInfo[provider as ModelProvider]?.color)}>
+                        <div className="flex items-center gap-2">
+                          {providerInfo[provider as ModelProvider]?.icon && React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-5 w-5" })}
+                          <h3 className="font-heading font-semibold">{providerInfo[provider as ModelProvider]?.name} Analysis</h3>
+                        </div>
+                        
+                        {/* FULL REPORT BUTTON */}
+                        <Button
+                          variant="secondary" 
+                          size="sm" 
+                          className="bg-white/10 hover:bg-white/20 text-white"
+                          onClick={() => handleFullReport(provider as ModelProvider)}
+                        >
+                          <BookOpen className="h-4 w-4 mr-1" />
+                          Full Report
+                        </Button>
+                      </div>
+                      
+                      <div className="p-6">
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Intelligence Score</span>
+                            <span className="text-primary font-semibold">{(analysis as CognitiveAnalysisResult).intelligenceScore}/100</span>
+                          </div>
+                          <Progress value={(analysis as CognitiveAnalysisResult).intelligenceScore} className="h-2" />
+                        </div>
+                        
+                        <div className="mb-6">
+                          <h4 className="font-medium text-secondary-light mb-2">Cognitive Characteristics</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {(analysis as CognitiveAnalysisResult).characteristics.map((characteristic, index) => (
+                              <span
+                                key={index}
+                                className="px-3 py-1 bg-secondary/10 rounded-full text-secondary-dark text-sm"
+                              >
+                                {characteristic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <h4 className="font-medium text-secondary-light mb-2">Analysis</h4>
+                          <p className="text-neutral-700">{(analysis as CognitiveAnalysisResult).detailedAnalysis}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="font-medium text-secondary-light mb-2">Cognitive Strengths</h4>
+                            <ul className="list-disc pl-4 space-y-1">
+                              {(analysis as CognitiveAnalysisResult).strengths.map((strength, index) => (
+                                <li key={index} className="text-neutral-700">{strength}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-secondary-light mb-2">Cognitive Tendencies</h4>
+                            <ul className="list-disc pl-4 space-y-1">
+                              {(analysis as CognitiveAnalysisResult).tendencies.map((tendency, index) => (
+                                <li key={index} className="text-neutral-700">{tendency}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </TabsContent>
               
               {validProviders.map(([provider]) => (
                 <TabsContent key={provider} value={provider} className="mt-4">
-                  <CognitiveProfileCard 
-                    result={result[provider as ModelProvider] as CognitiveAnalysisResult} 
-                    providerKey={provider as ModelProvider}
-                    onGenerateReport={handleFullReport}
-                  />
+                  <div className="bg-white rounded-xl shadow-md border border-neutral-200 overflow-hidden">
+                    <div className={cn("p-4 text-white flex items-center justify-between gap-2", providerInfo[provider as ModelProvider]?.color)}>
+                      <div className="flex items-center gap-2">
+                        {providerInfo[provider as ModelProvider]?.icon && React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-5 w-5" })}
+                        <h3 className="font-heading font-semibold">{providerInfo[provider as ModelProvider]?.name} Analysis</h3>
+                      </div>
+                      
+                      {/* FULL REPORT BUTTON */}
+                      <Button
+                        variant="secondary" 
+                        size="sm" 
+                        className="bg-white/10 hover:bg-white/20 text-white"
+                        onClick={() => handleFullReport(provider as ModelProvider)}
+                      >
+                        <BookOpen className="h-4 w-4 mr-1" />
+                        Full Report
+                      </Button>
+                    </div>
+                    
+                    <div className="p-6">
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">Intelligence Score</span>
+                          <span className="text-primary font-semibold">{(result[provider as ModelProvider] as CognitiveAnalysisResult).intelligenceScore}/100</span>
+                        </div>
+                        <Progress value={(result[provider as ModelProvider] as CognitiveAnalysisResult).intelligenceScore} className="h-2" />
+                      </div>
+                      
+                      <div className="mb-6">
+                        <h4 className="font-medium text-secondary-light mb-2">Cognitive Characteristics</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(result[provider as ModelProvider] as CognitiveAnalysisResult).characteristics.map((characteristic, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-secondary/10 rounded-full text-secondary-dark text-sm"
+                            >
+                              {characteristic}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="mb-6">
+                        <h4 className="font-medium text-secondary-light mb-2">Analysis</h4>
+                        <p className="text-neutral-700">{(result[provider as ModelProvider] as CognitiveAnalysisResult).detailedAnalysis}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-medium text-secondary-light mb-2">Cognitive Strengths</h4>
+                          <ul className="list-disc pl-4 space-y-1">
+                            {(result[provider as ModelProvider] as CognitiveAnalysisResult).strengths.map((strength, index) => (
+                              <li key={index} className="text-neutral-700">{strength}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-medium text-secondary-light mb-2">Cognitive Tendencies</h4>
+                          <ul className="list-disc pl-4 space-y-1">
+                            {(result[provider as ModelProvider] as CognitiveAnalysisResult).tendencies.map((tendency, index) => (
+                              <li key={index} className="text-neutral-700">{tendency}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </TabsContent>
               ))}
             </Tabs>
