@@ -29,9 +29,12 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       throw new Error('SendGrid API key not configured');
     }
 
+    // Get the sender email from the options or use the default
+    const fromEmail = options.from || process.env.SENDGRID_VERIFIED_SENDER || 'test@example.com';
+    
     const message = {
       to: options.to,
-      from: 'test@example.com', // This needs to be a verified sender in SendGrid
+      from: fromEmail, // This needs to be a verified sender in SendGrid
       subject: options.subject,
       text: options.text || '',
       html: options.html || '',
