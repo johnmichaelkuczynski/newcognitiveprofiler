@@ -4,7 +4,9 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 // Type for multi-provider analysis results
-export type MultiProviderPsychologicalResult = Record<ModelProvider, PsychologicalAnalysisResult>;
+export type MultiProviderPsychologicalResult = Record<ModelProvider, PsychologicalAnalysisResult> & {
+  originalText?: string; // Add original text to the result
+};
 
 export function usePsychologicalAnalysis() {
   const [data, setData] = useState<MultiProviderPsychologicalResult | null>(null);
@@ -17,7 +19,7 @@ export function usePsychologicalAnalysis() {
         analysisType: "psychological" 
       });
       const result = await response.json();
-      return result as MultiProviderPsychologicalResult;
+      return { ...result, originalText: text };
     },
     onSuccess: (result) => {
       setData(result);
