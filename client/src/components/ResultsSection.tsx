@@ -361,8 +361,21 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 size="sm" 
                 className="bg-white/10 hover:bg-white/20 text-white"
                 onClick={() => {
-                  const textToAnalyze = Object.values(result)[0].detailedAnalysis;
-                  generateReport(textToAnalyze, activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider);
+                  // Create a more comprehensive text for analysis
+                  let textToAnalyze = "";
+                  
+                  // Use the current active tab provider or selected provider
+                  const provider = activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider;
+                  const analysis = result[provider];
+                  
+                  // Combine all text fields from the cognitive analysis
+                  textToAnalyze = analysis.detailedAnalysis + "\n\n";
+                  textToAnalyze += "Strengths: " + analysis.strengths.join(", ") + "\n\n";
+                  textToAnalyze += "Tendencies: " + analysis.tendencies.join(", ") + "\n\n";
+                  textToAnalyze += "Characteristics: " + analysis.characteristics.join(", ");
+                  
+                  // Generate the comprehensive report
+                  generateReport(textToAnalyze, provider);
                 }}
                 disabled={isGenerating}
               >
