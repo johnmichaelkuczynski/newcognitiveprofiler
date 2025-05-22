@@ -5,6 +5,7 @@ import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./
 import { parseDocument } from "./documentParser";
 import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
+import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
@@ -272,6 +273,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error generating combined document:', error);
       const errorMessage = error instanceof Error ? error.message : "Failed to generate combined document";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+  
+  // Generate comprehensive cognitive report
+  app.post("/api/comprehensive-report", async (req, res) => {
+    try {
+      const { text, provider } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+      
+      if (text.length < 100) {
+        return res.status(400).json({ 
+          message: "Text is too short. Please provide at least 100 characters for analysis."
+        });
+      }
+      
+      // Generate the comprehensive report
+      const report = await generateComprehensiveReport(text, provider as ModelProvider);
+      
+      res.json(report);
+    } catch (error) {
+      console.error('Error generating comprehensive report:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate comprehensive report";
       res.status(500).json({ message: errorMessage });
     }
   });
