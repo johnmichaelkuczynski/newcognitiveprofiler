@@ -42,14 +42,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       throw new Error('SendGrid verified sender not configured');
     }
 
-    // Always use the verified sender from environment
+    // Use a simpler message structure for better compatibility
+    // Temporarily remove attachments which might be causing issues
     const message = {
       to: options.to,
       from: process.env.SENDGRID_VERIFIED_SENDER,
       subject: options.subject,
       text: options.text || '',
-      html: options.html || '',
-      attachments: options.attachments || [],
+      html: options.html || ''
     };
 
     await sgMail.send(message);
