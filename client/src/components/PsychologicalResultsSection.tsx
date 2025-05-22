@@ -722,7 +722,9 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
               <AccordionContent>
                 <div className="px-6 pb-4">
                   <div className="p-4 bg-gray-50 rounded-md text-sm whitespace-pre-wrap max-h-96 overflow-y-auto border border-gray-200">
-                    {result.originalText}
+                    {result.originalText && result.originalText.length > 5000 
+                      ? result.originalText.substring(0, 5000) + '... (text truncated for display)'
+                      : result.originalText}
                   </div>
                 </div>
               </AccordionContent>

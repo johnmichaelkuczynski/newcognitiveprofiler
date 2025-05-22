@@ -579,7 +579,9 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
           <div className="mb-6">
             <h3 className="font-heading text-lg mb-4">Provider Comparison</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(result).map(([provider, analysis]) => (
+              {Object.entries(result)
+                .filter(([key]) => key !== 'originalText') // Filter out the originalText property
+                .map(([provider, analysis]) => (
                 <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
                   <div className="flex items-center gap-2 mb-2">
                     {React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-4 w-4 text-primary" })}
@@ -655,7 +657,9 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
               <AccordionContent>
                 <div className="px-6 pb-4">
                   <div className="p-4 bg-gray-50 rounded-md text-sm whitespace-pre-wrap max-h-96 overflow-y-auto border border-gray-200">
-                    {result.originalText}
+                    {result.originalText && result.originalText.length > 5000 
+                      ? result.originalText.substring(0, 5000) + '... (text truncated for display)'
+                      : result.originalText}
                   </div>
                 </div>
               </AccordionContent>
