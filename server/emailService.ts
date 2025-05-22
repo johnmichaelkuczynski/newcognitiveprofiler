@@ -1,7 +1,8 @@
 import sgMail from '@sendgrid/mail';
 
-// Initialize SendGrid with the API key
+// Re-initialize SendGrid with the API key (important when keys are updated)
 if (process.env.SENDGRID_API_KEY) {
+  // Make sure we're using the latest API key
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   console.log('SendGrid API key configured successfully');
 } else {
@@ -42,11 +43,13 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       throw new Error('SendGrid verified sender not configured');
     }
 
-    // Use a simpler message structure for better compatibility
-    // Temporarily remove attachments which might be causing issues
+    // Construct proper SendGrid email format
     const message = {
       to: options.to,
-      from: process.env.SENDGRID_VERIFIED_SENDER,
+      from: {
+        email: process.env.SENDGRID_VERIFIED_SENDER,
+        name: "Cognitive Profile App"
+      },
       subject: options.subject,
       text: options.text || '',
       html: options.html || ''
