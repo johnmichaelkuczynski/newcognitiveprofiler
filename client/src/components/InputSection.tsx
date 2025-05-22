@@ -26,10 +26,12 @@ export default function InputSection({
   const isButtonDisabled = charCount < 100;
 
   useEffect(() => {
-    // Auto-resize textarea based on content
+    // Auto-resize textarea based on content, but limit maximum height
     if (textareaRef.current) {
+      const maxHeight = 400; // Maximum height in pixels
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.max(300, textareaRef.current.scrollHeight)}px`;
+      const newHeight = Math.min(maxHeight, Math.max(300, textareaRef.current.scrollHeight));
+      textareaRef.current.style.height = `${newHeight}px`;
     }
   }, [textSample]);
 
