@@ -72,7 +72,7 @@ export default function InputSection({
                 ref={fileInputRef}
                 id="file-upload" 
                 type="file" 
-                accept=".txt,.doc,.docx,.pdf,.rtf" 
+                accept=".txt,.doc,.docx,.rtf" 
                 className="hidden" 
                 onChange={onFileUpload}
               />
@@ -85,7 +85,7 @@ export default function InputSection({
           </div>
           
           <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-neutral-500">Supported formats: .txt, .doc, .docx, .pdf, .rtf</p>
+            <p className="text-xs text-neutral-500">Supported formats: .txt, .doc, .docx, .rtf</p>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-neutral-700">
                 Analysis using: OpenAI, Anthropic & Perplexity
