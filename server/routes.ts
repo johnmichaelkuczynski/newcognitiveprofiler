@@ -234,12 +234,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </div>
       `;
       
-      // Send a simpler email without attachment
+      // Send a simple text email that's more likely to deliver successfully
+      const plainTextContent = `
+${fromName} shared a ${analysisType} analysis with you.
+
+This analysis was generated using the ${getProviderName(provider)} AI model.
+
+The analysis examines ${analysisType === 'cognitive' ? 'thinking patterns, reasoning style, and intellectual tendencies' : 'emotional patterns, motivational structure, and interpersonal dynamics'} based on text analysis.
+
+Thank you for using Cognitive Profile App!
+      `;
+
       const emailSent = await sendEmail({
         to: recipientEmail,
         subject,
-        html: htmlContent + `<p>Note: For security reasons, the attachment couldn't be included. 
-              You can ask ${senderName || "the sender"} to send you the document directly.</p>`
+        text: plainTextContent,
+        html: htmlContent
       });
       
       if (emailSent) {
