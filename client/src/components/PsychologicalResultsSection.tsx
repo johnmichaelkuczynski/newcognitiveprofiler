@@ -315,7 +315,7 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
             <span>Text</span>
           </Button>
           
-          {/* Comprehensive report button */}
+          {/* Full Report button */}
           <Button
             variant="outline" 
             size="sm"
