@@ -50,6 +50,11 @@ function CognitiveProfileCard({
   result: CognitiveAnalysisResult; 
   providerKey: ModelProvider;
 }) {
+  // Check if the providerKey exists in providerInfo before destructuring
+  if (!providerInfo[providerKey]) {
+    return null; // Skip rendering if provider info isn't available
+  }
+  
   const { name, color, icon: Icon } = providerInfo[providerKey];
   
   return (
@@ -157,13 +162,13 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     closeModal 
   } = useComprehensiveReport();
 
-  // Calculate average intelligence score across all providers
-  const averageScore = Math.round(
-    Object.entries(result)
-      .filter(([key]) => key !== 'originalText') // Filter out the originalText property
-      .reduce((sum, [_, profile]) => sum + profile.intelligenceScore, 0) / 
-    (Object.keys(result).length - (result.originalText ? 1 : 0)) // Adjust length to account for originalText
-  );
+  // Calculate average intelligence score across all providers (filtering out non-provider entries)
+  const validProviders = Object.entries(result)
+    .filter(([key]) => key !== 'originalText' && providerInfo[key as ModelProvider]); // Only include valid providers
+  
+  const averageScore = validProviders.length > 0 ? Math.round(
+    validProviders.reduce((sum, [_, profile]) => sum + profile.intelligenceScore, 0) / validProviders.length
+  ) : 0;
 
   const copyResults = () => {
     // Create a combined text representation of all results
