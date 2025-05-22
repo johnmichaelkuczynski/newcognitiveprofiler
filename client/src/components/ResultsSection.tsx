@@ -339,9 +339,6 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
 
   // Handle generating full report - can be called with a specific provider or use active/selected
   const handleFullReport = (specificProvider?: ModelProvider) => {
-    // Create a more comprehensive text for analysis
-    let textToAnalyze = "";
-    
     // Use the provided specific provider, current active tab, or selected provider
     const provider = specificProvider || (activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider);
     
@@ -355,15 +352,24 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
       return;
     }
 
-    const analysis = result[provider] as CognitiveAnalysisResult;
+    // Use the original text instead of constructing a new one
+    const textToAnalyze = result.originalText || "";
     
-    // Combine all text fields from the cognitive analysis
-    textToAnalyze = analysis.detailedAnalysis + "\n\n";
-    textToAnalyze += "Strengths: " + analysis.strengths.join(", ") + "\n\n";
-    textToAnalyze += "Tendencies: " + analysis.tendencies.join(", ") + "\n\n";
-    textToAnalyze += "Characteristics: " + analysis.characteristics.join(", ");
+    if (!textToAnalyze || textToAnalyze.length < 100) {
+      toast({
+        variant: "destructive",
+        title: "Report generation failed",
+        description: "Original text is too short or missing",
+      });
+      return;
+    }
     
-    // Generate the comprehensive report
+    toast({
+      title: "Generating comprehensive report",
+      description: "This may take a moment...",
+    });
+    
+    // Generate the comprehensive report using the original text
     generateReport(textToAnalyze, provider);
   };
 
