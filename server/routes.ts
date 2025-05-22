@@ -219,13 +219,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subject = `${senderName || 'Someone'} shared a ${analysisType} analysis with you`;
       const fromName = senderName || 'Cognitive Profile App';
       
-      // Create HTML email body
+      // Create HTML email body with more details
       const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #4a69bd;">${fromName} shared a ${analysisType} analysis with you</h2>
           <p>Hello,</p>
           <p>${fromName} has shared a ${analysisType} analysis with you, generated using the ${getProviderName(provider)} AI model.</p>
-          <p>You can find the complete analysis in the attached document.</p>
+          <p>This analysis examines ${analysisType === 'cognitive' ? 'thinking patterns, reasoning style, and intellectual tendencies' : 'emotional patterns, motivational structure, and interpersonal dynamics'} based on text analysis.</p>
+          <p>You can find the complete analysis in the attached document (${format.toUpperCase()} format).</p>
           <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #4a69bd;">
             <p style="margin: 0; font-style: italic;">This analysis is for informational purposes only and should not be used for clinical diagnosis or treatment decisions.</p>
           </div>

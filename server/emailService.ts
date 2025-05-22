@@ -3,12 +3,21 @@ import sgMail from '@sendgrid/mail';
 // Initialize SendGrid with the API key
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('SendGrid API key configured successfully');
 } else {
   console.warn('SendGrid API key not found. Email functionality will not work.');
 }
 
+// Verify that we have a verified sender
+if (process.env.SENDGRID_VERIFIED_SENDER) {
+  console.log(`Using verified sender: ${process.env.SENDGRID_VERIFIED_SENDER}`);
+} else {
+  console.warn('SendGrid verified sender not found. Email functionality will not work properly.');
+}
+
 interface EmailOptions {
   to: string;
+  from?: string;
   subject: string;
   text?: string;
   html?: string;
@@ -28,13 +37,15 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     if (!process.env.SENDGRID_API_KEY) {
       throw new Error('SendGrid API key not configured');
     }
-
-    // Get the sender email from the options or use the default
-    const fromEmail = options.from || process.env.SENDGRID_VERIFIED_SENDER || 'test@example.com';
     
+    if (!process.env.SENDGRID_VERIFIED_SENDER) {
+      throw new Error('SendGrid verified sender not configured');
+    }
+
+    // Always use the verified sender from environment
     const message = {
       to: options.to,
-      from: fromEmail, // This needs to be a verified sender in SendGrid
+      from: process.env.SENDGRID_VERIFIED_SENDER,
       subject: options.subject,
       text: options.text || '',
       html: options.html || '',
