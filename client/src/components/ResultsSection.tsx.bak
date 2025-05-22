@@ -329,8 +329,8 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     }
   };
 
-  // Handle generating full report
-  const handleFullReport = () => {
+  // Function to generate a full comprehensive report
+  const handleGenerateFullReport = () => {
     // Create a more comprehensive text for analysis
     let textToAnalyze = "";
     
@@ -379,7 +379,7 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 variant="secondary" 
                 size="sm" 
                 className="bg-white/10 hover:bg-white/20 text-white"
-                onClick={handleFullReport}
+                onClick={handleGenerateFullReport}
                 disabled={isGenerating}
               >
                 <BookOpen className="h-4 w-4 mr-1" />
