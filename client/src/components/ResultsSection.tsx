@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType } from "lucide-react";
+import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +21,8 @@ import { MultiProviderAnalysisResult } from "@/hooks/useCognitiveAnalysis";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useComprehensiveReport } from "@/hooks/useComprehensiveReport";
+import ComprehensiveReportModal from "@/components/ComprehensiveReportModal";
 
 interface ResultsSectionProps {
   result: MultiProviderAnalysisResult;
@@ -139,6 +141,15 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
   const [recipientEmail, setRecipientEmail] = useState("");
   const [senderName, setSenderName] = useState("");
   const { toast } = useToast();
+  
+  // Use the comprehensive report hook
+  const { 
+    generateReport, 
+    isGenerating, 
+    currentReport, 
+    isModalOpen, 
+    closeModal 
+  } = useComprehensiveReport();
 
   // Calculate average intelligence score across all providers
   const averageScore = Math.round(
