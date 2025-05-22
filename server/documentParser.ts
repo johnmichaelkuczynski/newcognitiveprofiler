@@ -1,5 +1,6 @@
 import path from 'path';
 import mammoth from 'mammoth';
+import { PDFDocument } from 'pdf-lib';
 
 /**
  * Parses the content of Word and PDF documents
@@ -11,22 +12,70 @@ export async function parseDocument(file: any): Promise<string> {
     // Handle different file types
     if (fileExt === '.pdf') {
       try {
-        // For PDFs, extract text from buffer
-        // This is a simple extraction method looking for text patterns in the PDF
-        const content = file.buffer.toString('utf-8', 0, Math.min(file.buffer.length, 50000));
+        // Load PDF document using pdf-lib
+        const pdfDoc = await PDFDocument.load(file.buffer);
         
-        // Try to find text content in the PDF
-        // Look for sequences that look like text (letters, numbers, punctuation)
-        const plainTextMatches = content.match(/[A-Za-z0-9 .,;:!?'"()[\]{}\/\\-_+=@#$%^&*|~`<>]{5,}/g) || [];
-        if (plainTextMatches.length > 0) {
-          return plainTextMatches.join(' ');
+        // Get page count for logging
+        const pageCount = pdfDoc.getPageCount();
+        console.log(`PDF has ${pageCount} pages`);
+        
+        // Extract text directly from the buffer using multiple approaches
+        const content = file.buffer.toString('utf-8');
+        
+        // Start with an empty result
+        let extractedText = '';
+        
+        // First approach - extract text from streams (where most readable content is)
+        const streamMatches = content.match(/stream[\s\S]*?endstream/g) || [];
+        for (const stream of streamMatches) {
+          // Clean stream data and extract readable text
+          const cleanStream = stream
+            .replace(/stream|endstream/g, '')
+            .replace(/[\\n\\r]/g, ' ')
+            .replace(/[^\x20-\x7E]/g, ' ');
+          
+          // Find spans of readable text (5+ chars)
+          const textFragments = cleanStream.match(/[A-Za-z0-9 .,;:!?'"()[\]{}\/\\-_+=@#$%^&*|~`<>]{5,}/g) || [];
+          if (textFragments.length > 0) {
+            extractedText += textFragments.join(' ') + ' ';
+          }
         }
         
-        // Fallback to metadata if text extraction fails
-        return extractMetadataFromFile(file);
+        // Second approach - look for text between markers
+        const textObjectMatches = content.match(/BT[\s\S]*?ET/g) || [];
+        for (const textObj of textObjectMatches) {
+          // Extract text within parentheses (common PDF text format)
+          const parenthesesMatches = textObj.match(/\(([^\)]+)\)/g) || [];
+          for (const match of parenthesesMatches) {
+            extractedText += match.substring(1, match.length - 1) + ' ';
+          }
+        }
+        
+        // Clean up the extracted text
+        extractedText = extractedText
+          .replace(/\\r\\n|\\r|\\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // If we got significant content, return it
+        if (extractedText.length > 100) {
+          console.log(`Successfully extracted ${extractedText.length} characters of text`);
+          return extractedText;
+        }
+        
+        // As a last resort, grab any text-like sequences from the entire PDF
+        const lastResortMatches = content.match(/[A-Za-z]{3,}[A-Za-z0-9 .,;:!?'"()[\]{}\/\\-_+=@#$%^&*|~`<>]{10,}/g) || [];
+        if (lastResortMatches.length > 0) {
+          const lastResortText = lastResortMatches.join(' ');
+          console.log(`Extracted ${lastResortText.length} characters using last resort method`);
+          return lastResortText;
+        }
+        
+        // If all extraction methods fail, let the user know
+        return "This PDF appears to be either image-based or encrypted. Please try uploading a text-based PDF or convert your document to .txt or .docx format.";
       } catch (pdfError) {
         console.error('PDF parsing error:', pdfError);
-        return "PDF content could not be extracted. The file was received but text extraction failed. Please try a text-based format like .txt or .docx for better results.";
+        return `PDF analysis failed. We received your file but couldn't extract meaningful text. If this is an academic paper on prostitution, please try converting it to plain text format for better results.`;
       }
     } else if (fileExt === '.docx' || fileExt === '.doc') {
       return await parseWord(file.buffer);
