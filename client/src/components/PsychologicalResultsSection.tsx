@@ -321,8 +321,18 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
             size="sm"
             className="flex items-center gap-1"
             onClick={() => {
-              // Use the overallSummary from the selected provider as input for the comprehensive report
-              const textToAnalyze = result[activeProvider].overallSummary;
+              // Create a more detailed request for analysis that includes all available text
+              // This ensures we have enough content for a thorough analysis
+              let textToAnalyze = "";
+              const analysis = result[activeProvider];
+              
+              // Combine all text fields from the psychological analysis for a better report
+              textToAnalyze += analysis.emotionalProfile.detailedAnalysis + "\n\n";
+              textToAnalyze += analysis.motivationalStructure.detailedAnalysis + "\n\n";
+              textToAnalyze += analysis.interpersonalDynamics.detailedAnalysis + "\n\n";
+              textToAnalyze += analysis.overallSummary;
+              
+              // Generate the comprehensive report
               generateReport(textToAnalyze, activeProvider);
             }}
             disabled={isGenerating}
