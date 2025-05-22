@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, FileText, Mail, Copy, Check } from "lucide-react";
+import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, FileText, Mail, Copy, Check, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -18,6 +18,8 @@ import { PsychologicalAnalysisResult, ModelProvider } from "@/types/analysis";
 import { MultiProviderPsychologicalResult } from "@/hooks/usePsychologicalAnalysis";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useComprehensivePsychologicalReport } from "@/hooks/useComprehensivePsychologicalReport";
+import ComprehensivePsychologicalReportModal from "@/components/ComprehensivePsychologicalReportModal";
 
 // Provider information for display
 const providerInfo: Record<string, {
@@ -60,6 +62,15 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
   const [senderName, setSenderName] = useState("");
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  
+  // Use the comprehensive psychological report hook
+  const { 
+    generateReport, 
+    isGenerating, 
+    currentReport, 
+    isModalOpen, 
+    closeModal 
+  } = useComprehensivePsychologicalReport();
   
   const copyResults = () => {
     // Create a text representation of the current provider's results
@@ -302,6 +313,22 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
           >
             <Download className="h-4 w-4" />
             <span>Text</span>
+          </Button>
+          
+          {/* Comprehensive report button */}
+          <Button
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => {
+              // Use the overallSummary from the selected provider as input for the comprehensive report
+              const textToAnalyze = result[activeProvider].overallSummary;
+              generateReport(textToAnalyze, activeProvider);
+            }}
+            disabled={isGenerating}
+          >
+            <BookOpen className="h-4 w-4" />
+            <span>{isGenerating ? "Generating..." : "Full Report"}</span>
           </Button>
           
           {/* Export document dialog */}
@@ -664,6 +691,13 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
           </TabsContent>
         ))}
       </Tabs>
+      
+      {/* Comprehensive Psychological Report Modal */}
+      <ComprehensivePsychologicalReportModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        report={currentReport}
+      />
     </div>
   );
 }
