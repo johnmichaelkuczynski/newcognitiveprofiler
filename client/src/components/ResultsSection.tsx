@@ -45,10 +45,12 @@ const providerInfo: Record<string, {
 // Single profile card component
 function CognitiveProfileCard({ 
   result, 
-  providerKey 
+  providerKey,
+  onGenerateReport
 }: { 
   result: CognitiveAnalysisResult; 
   providerKey: ModelProvider;
+  onGenerateReport?: (provider: ModelProvider) => void;
 }) {
   // Check if the providerKey exists in providerInfo before destructuring
   if (!providerInfo[providerKey]) {
@@ -59,9 +61,24 @@ function CognitiveProfileCard({
   
   return (
     <div className="bg-white rounded-xl shadow-md border border-neutral-200 overflow-hidden">
-      <div className={cn("p-4 text-white flex items-center gap-2", color)}>
-        <Icon className="h-5 w-5" />
-        <h3 className="font-heading font-semibold">{name} Analysis</h3>
+      <div className={cn("p-4 text-white flex items-center justify-between gap-2", color)}>
+        <div className="flex items-center gap-2">
+          <Icon className="h-5 w-5" />
+          <h3 className="font-heading font-semibold">{name} Analysis</h3>
+        </div>
+        
+        {/* Add Full Report button if handler is provided */}
+        {onGenerateReport && (
+          <Button
+            variant="secondary" 
+            size="sm" 
+            className="bg-white/10 hover:bg-white/20 text-white"
+            onClick={() => onGenerateReport(providerKey)}
+          >
+            <BookOpen className="h-4 w-4 mr-1" />
+            Full Report
+          </Button>
+        )}
       </div>
       
       <div className="p-6">
@@ -320,13 +337,13 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     }
   };
 
-  // Handle generating full report
-  const handleFullReport = () => {
+  // Handle generating full report - can be called with a specific provider or use active/selected
+  const handleFullReport = (specificProvider?: ModelProvider) => {
     // Create a more comprehensive text for analysis
     let textToAnalyze = "";
     
-    // Use the current active tab provider or selected provider
-    const provider = activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider;
+    // Use the provided specific provider, current active tab, or selected provider
+    const provider = specificProvider || (activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider);
     
     // Make sure provider exists in the results
     if (!result[provider] || typeof result[provider] === 'string') {
@@ -560,7 +577,6 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
             <Progress 
               value={averageScore} 
               className="h-2.5 bg-white/20" 
-              indicatorClassName="bg-white" 
             />
           </div>
         </div>
@@ -603,7 +619,8 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                     <CognitiveProfileCard 
                       key={provider} 
                       result={analysis as CognitiveAnalysisResult} 
-                      providerKey={provider as ModelProvider} 
+                      providerKey={provider as ModelProvider}
+                      onGenerateReport={handleFullReport}
                     />
                   ))}
                 </div>
@@ -613,7 +630,8 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 <TabsContent key={provider} value={provider} className="mt-4">
                   <CognitiveProfileCard 
                     result={result[provider as ModelProvider] as CognitiveAnalysisResult} 
-                    providerKey={provider as ModelProvider} 
+                    providerKey={provider as ModelProvider}
+                    onGenerateReport={handleFullReport}
                   />
                 </TabsContent>
               ))}
