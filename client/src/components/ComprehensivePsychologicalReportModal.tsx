@@ -1,10 +1,13 @@
-import React from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Mail, FileType } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModelProvider } from "@/types/analysis";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface ComprehensivePsychologicalReport {
   personalityTraits: string;
@@ -31,10 +34,16 @@ export default function ComprehensivePsychologicalReportModal({
   report 
 }: ComprehensivePsychologicalReportModalProps) {
   const { toast } = useToast();
+  const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [showShareForm, setShowShareForm] = useState(false);
 
   if (!report) return null;
 
-  const downloadReport = () => {
+  const downloadAsText = () => {
     try {
       // Create text content
       let reportText = `COMPREHENSIVE PSYCHOLOGICAL ANALYSIS\n\n`;
@@ -74,6 +83,161 @@ export default function ComprehensivePsychologicalReportModal({
       });
     }
   };
+  
+  const exportDocument = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Create export data with the report fields
+      const exportData = {
+        analysis: {
+          // Create a structure that matches what the server expects for the psychological analysis
+          emotionalProfile: {
+            primaryEmotions: [],
+            emotionalStability: 65,
+            detailedAnalysis: report.emotionalUndertone
+          },
+          motivationalStructure: {
+            primaryDrives: [],
+            motivationalPatterns: [],
+            detailedAnalysis: report.motivation
+          },
+          interpersonalDynamics: {
+            attachmentStyle: "",
+            socialOrientations: [],
+            relationshipPatterns: [],
+            detailedAnalysis: report.interpersonalStance
+          },
+          strengths: [],
+          challenges: [],
+          overallSummary: report.personalityTraits + "\n\n" + report.emotionalAwareness
+        },
+        provider: report.generatedBy,
+        analysisType: 'psychological',
+        format: documentFormat
+      };
+      
+      // Make API request to generate document
+      const response = await fetch('/api/export-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to export document');
+      }
+      
+      // Get the document as a blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `comprehensive-psychological-analysis-${report.generatedBy}-${Date.now()}.${documentFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Document exported successfully",
+        description: `Your analysis has been exported as a ${documentFormat.toUpperCase()} file.`,
+      });
+    } catch (error) {
+      console.error('Error exporting document:', error);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export document. Please try again.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  const shareViaEmail = async () => {
+    try {
+      if (!recipientEmail) {
+        toast({
+          variant: "destructive",
+          title: "Email required",
+          description: "Please enter a recipient email address.",
+        });
+        return;
+      }
+      
+      setIsSharing(true);
+      
+      // Create data for the email sharing request
+      const shareData = {
+        analysis: {
+          // Create a structure that matches what the server expects for the psychological analysis
+          emotionalProfile: {
+            primaryEmotions: [],
+            emotionalStability: 65,
+            detailedAnalysis: report.emotionalUndertone
+          },
+          motivationalStructure: {
+            primaryDrives: [],
+            motivationalPatterns: [],
+            detailedAnalysis: report.motivation
+          },
+          interpersonalDynamics: {
+            attachmentStyle: "",
+            socialOrientations: [],
+            relationshipPatterns: [],
+            detailedAnalysis: report.interpersonalStance
+          },
+          strengths: [],
+          challenges: [],
+          overallSummary: report.personalityTraits + "\n\n" + report.emotionalAwareness
+        },
+        provider: report.generatedBy,
+        analysisType: 'psychological',
+        format: documentFormat,
+        recipientEmail,
+        senderName: senderName || "Cognitive Profile App User"
+      };
+      
+      // Make API request to share via email
+      const response = await fetch('/api/share-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(shareData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to share via email');
+      }
+      
+      toast({
+        title: "Analysis shared successfully",
+        description: `Your comprehensive analysis has been sent to ${recipientEmail}.`,
+      });
+      
+      // Reset form and hide it
+      setRecipientEmail("");
+      setSenderName("");
+      setShowShareForm(false);
+    } catch (error) {
+      console.error('Error sharing via email:', error);
+      toast({
+        variant: "destructive",
+        title: "Sharing failed",
+        description: error instanceof Error ? error.message : "Failed to share via email. Please try again.",
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const getProviderName = (provider: ModelProvider): string => {
     const providerNames: Record<ModelProvider, string> = {
@@ -91,9 +255,35 @@ export default function ComprehensivePsychologicalReportModal({
           <DialogTitle className="flex items-center justify-between">
             <span>Comprehensive Psychological Analysis</span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={downloadReport}>
-                <Download className="h-4 w-4 mr-1" />
-                Download
+              <Button size="sm" variant="outline" onClick={downloadAsText}>
+                <FileType className="h-4 w-4 mr-1" />
+                Text
+              </Button>
+              
+              {/* PDF/Word export dropdown */}
+              <div className="relative inline-block">
+                <Select 
+                  value={documentFormat} 
+                  onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                >
+                  <SelectTrigger className="w-[130px] h-9">
+                    <SelectValue placeholder="Format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">PDF Document</SelectItem>
+                    <SelectItem value="docx">Word Document</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button size="sm" variant="outline" onClick={exportDocument} disabled={isExporting}>
+                <FileText className="h-4 w-4 mr-1" />
+                {isExporting ? "Exporting..." : "Export"}
+              </Button>
+              
+              <Button size="sm" variant="outline" onClick={() => setShowShareForm(true)}>
+                <Mail className="h-4 w-4 mr-1" />
+                Share
               </Button>
             </div>
           </DialogTitle>
@@ -101,6 +291,52 @@ export default function ComprehensivePsychologicalReportModal({
             Generated by {getProviderName(report.generatedBy)}
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Email sharing form */}
+        {showShareForm && (
+          <div className="mb-4 p-4 border rounded-md bg-slate-50">
+            <h3 className="text-sm font-medium mb-3">Share Report via Email</h3>
+            <div className="grid gap-4 mb-3">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="recipient-email" className="text-right">
+                  Recipient
+                </Label>
+                <Input
+                  id="recipient-email"
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="recipient@example.com"
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="sender-name" className="text-right">
+                  Your Name
+                </Label>
+                <Input
+                  id="sender-name"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="Optional"
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowShareForm(false)}>
+                Cancel
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={shareViaEmail}
+                disabled={isSharing || !recipientEmail}
+              >
+                {isSharing ? "Sending..." : "Send Email"}
+              </Button>
+            </div>
+          </div>
+        )}
         
         <div className="mt-4">
           <Tabs defaultValue="personality" className="w-full">
