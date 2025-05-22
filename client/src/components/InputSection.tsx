@@ -3,18 +3,22 @@ import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import { AnalysisType } from "@/types/analysis";
+
 interface InputSectionProps {
   textSample: string;
   onTextChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onAnalyze: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  analysisType: AnalysisType;
 }
 
 export default function InputSection({ 
   textSample,
   onTextChange, 
   onAnalyze,
-  onFileUpload
+  onFileUpload,
+  analysisType
 }: InputSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -37,7 +41,9 @@ export default function InputSection({
     <section className="mb-8 max-w-4xl mx-auto">
       <div className="bg-white rounded-xl shadow-card p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-          <h2 className="font-heading font-semibold text-xl text-secondary-light">Cognitive Profiling Analysis</h2>
+          <h2 className="font-heading font-semibold text-xl text-secondary-light">
+            {analysisType === "cognitive" ? "Cognitive Profiling Analysis" : "Psychological Profiling Analysis"}
+          </h2>
           <Badge variant="outline" className="flex items-center gap-1 px-3 py-1 bg-secondary/5">
             <Layers className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">Multi-Provider Analysis</span>
@@ -50,7 +56,7 @@ export default function InputSection({
               ref={textareaRef}
               id="text-input" 
               className="w-full h-80 p-4 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-200 resize-y font-sans text-neutral-700"
-              placeholder="Paste or type any text sample for cognitive analysis. Longer samples (500+ characters) provide more accurate profiling results."
+              placeholder={`Paste or type any text sample for ${analysisType} analysis. Longer samples (500+ characters) provide more accurate profiling results.`}
               value={textSample}
               onChange={onTextChange}
             />
