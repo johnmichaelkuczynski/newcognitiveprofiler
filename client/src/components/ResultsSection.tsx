@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen, FileText2 } from "lucide-react";
+import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";

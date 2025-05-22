@@ -20,6 +20,12 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useComprehensivePsychologicalReport } from "@/hooks/useComprehensivePsychologicalReport";
 import ComprehensivePsychologicalReportModal from "@/components/ComprehensivePsychologicalReportModal";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Provider information for display
 const providerInfo: Record<string, {
