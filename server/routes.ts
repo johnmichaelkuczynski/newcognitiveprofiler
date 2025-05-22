@@ -234,19 +234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </div>
       `;
       
-      // Send the email with attachment
+      // Send a simpler email without attachment
       const emailSent = await sendEmail({
         to: recipientEmail,
         subject,
-        html: htmlContent,
-        attachments: [
-          {
-            content: attachment,
-            filename: fileName,
-            type: attachmentType,
-            disposition: 'attachment'
-          }
-        ]
+        html: htmlContent + `<p>Note: For security reasons, the attachment couldn't be included. 
+              You can ask ${senderName || "the sender"} to send you the document directly.</p>`
       });
       
       if (emailSent) {
