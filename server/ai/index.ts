@@ -165,7 +165,7 @@ export async function analyzeText(
  * Analyzes text using all providers for cognitive analysis and returns all results
  */
 export async function analyzeCognitiveTextWithAllProviders(text: string): Promise<Record<ModelProvider, CognitiveAnalysisResult>> {
-  const providers: ModelProvider[] = ["openai", "anthropic"];
+  const providers: ModelProvider[] = ["openai", "anthropic", "perplexity"];
   const results: Partial<Record<ModelProvider, CognitiveAnalysisResult>> = {};
   
   for (const provider of providers) {
@@ -191,7 +191,7 @@ export async function analyzeCognitiveTextWithAllProviders(text: string): Promis
  * Analyzes text using all providers for psychological analysis and returns all results
  */
 export async function analyzePsychologicalTextWithAllProviders(text: string): Promise<Record<ModelProvider, PsychologicalAnalysisResult>> {
-  const providers: ModelProvider[] = ["openai", "anthropic"];
+  const providers: ModelProvider[] = ["openai", "anthropic", "perplexity"];
   const results: Partial<Record<ModelProvider, PsychologicalAnalysisResult>> = {};
   
   for (const provider of providers) {

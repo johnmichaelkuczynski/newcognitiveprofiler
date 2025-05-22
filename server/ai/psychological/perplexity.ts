@@ -82,7 +82,8 @@ async function makePerplexityRequest(
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 2000,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -109,7 +110,7 @@ export async function analyzeWithPerplexity(text: string): Promise<Psychological
 
     // Prepare the API request
     const apiKey = process.env.PERPLEXITY_API_KEY;
-    const model = "llama-3-sonar-small-128k"; // Using Perplexity's supported model for structured output
+    const model = "llama-3-8b-instruct"; // Using Perplexity's supported model for structured output
     
     // Make the API request to Perplexity - pass the text directly
     const response = await makePerplexityRequest(text, model, apiKey);
