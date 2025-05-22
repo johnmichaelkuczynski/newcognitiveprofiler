@@ -1,8 +1,6 @@
 import React from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Heart, Users, Lightbulb } from "lucide-react";
+import { RefreshCw, BrainCircuit, Heart, Users, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PsychologicalAnalysisResult, ModelProvider } from "@/types/analysis";
 import { MultiProviderPsychologicalResult } from "@/hooks/usePsychologicalAnalysis";
@@ -32,14 +30,12 @@ interface PsychologicalResultsSectionProps {
   onNewAnalysis: () => void;
 }
 
-function PsychologicalProfileCard({ 
-  result, 
-  providerKey 
-}: { 
+function PsychologicalProfileCard({ result, providerKey }: { 
   result: PsychologicalAnalysisResult; 
   providerKey: ModelProvider;
 }) {
-  const { name, color, icon: Icon } = providerInfo[providerKey];
+  const { name, color } = providerInfo[providerKey];
+  const Icon = providerInfo[providerKey].icon;
   
   return (
     <div className="bg-white rounded-xl shadow-md border border-neutral-200 overflow-hidden">
@@ -213,7 +209,7 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
   const providers = Object.keys(result) as ModelProvider[];
   
   // Default to the first provider tab
-  const [activeProvider, setActiveProvider] = React.useState<ModelProvider>(providers[0]);
+  const [activeProvider, setActiveProvider] = React.useState<ModelProvider>(providers[0] || "openai");
 
   return (
     <div className="my-8">
@@ -240,16 +236,19 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
         className="w-full"
       >
         <TabsList className="grid grid-cols-3 mb-4">
-          {providers.map(provider => (
-            <TabsTrigger 
-              key={provider} 
-              value={provider}
-              className="flex items-center gap-1.5"
-            >
-              {providerInfo[provider].icon && <providerInfo[provider].icon className="h-4 w-4" />}
-              <span>{providerInfo[provider].name}</span>
-            </TabsTrigger>
-          ))}
+          {providers.map(provider => {
+            const ProviderIcon = providerInfo[provider].icon;
+            return (
+              <TabsTrigger 
+                key={provider} 
+                value={provider}
+                className="flex items-center gap-1.5"
+              >
+                <ProviderIcon className="h-4 w-4" />
+                <span>{providerInfo[provider].name}</span>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
         
         {providers.map(provider => (
