@@ -1,8 +1,10 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./ai";
 import { parseDocument } from "./documentParser";
+import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
+import { sendEmail } from "./emailService";
 import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
@@ -141,6 +143,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: errorMessage });
     }
   });
+
+  // Export analysis as document (PDF or Word)
+  app.post("/api/export-document", async (req, res) => {
+    try {
+      const { analysis, provider, analysisType, format } = req.body;
+      
+      if (!analysis || !provider || !analysisType || !format) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+      
+      let buffer: Buffer;
+      let contentType: string;
+      let fileName: string;
+      
+      // Generate the appropriate document format
+      if (format === 'pdf') {
+        buffer = await generatePdfDocument(analysis, provider, analysisType);
+        contentType = 'application/pdf';
+        fileName = `${analysisType}-analysis-${provider}-${Date.now()}.pdf`;
+      } else if (format === 'docx') {
+        buffer = await generateWordDocument(analysis, provider, analysisType);
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        fileName = `${analysisType}-analysis-${provider}-${Date.now()}.docx`;
+      } else {
+        return res.status(400).json({ message: "Invalid format specified" });
+      }
+      
+      // Set the appropriate headers for file download
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      res.setHeader('Content-Length', buffer.length);
+      
+      // Send the file
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error generating document:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate document";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+  
+  // Share analysis via email
+  app.post("/api/share-email", async (req, res) => {
+    try {
+      const { analysis, provider, analysisType, format, recipientEmail, senderName } = req.body;
+      
+      if (!analysis || !provider || !analysisType || !format || !recipientEmail) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+      
+      // Generate the document for attachment
+      let buffer: Buffer;
+      let attachmentType: string;
+      let fileName: string;
+      
+      if (format === 'pdf') {
+        buffer = await generatePdfDocument(analysis, provider, analysisType);
+        attachmentType = 'application/pdf';
+        fileName = `${analysisType}-analysis-${provider}.pdf`;
+      } else if (format === 'docx') {
+        buffer = await generateWordDocument(analysis, provider, analysisType);
+        attachmentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        fileName = `${analysisType}-analysis-${provider}.docx`;
+      } else {
+        return res.status(400).json({ message: "Invalid format specified" });
+      }
+      
+      // Convert buffer to base64 for email attachment
+      const attachment = buffer.toString('base64');
+      
+      // Create email content
+      const subject = `${senderName || 'Someone'} shared a ${analysisType} analysis with you`;
+      const fromName = senderName || 'Cognitive Profile App';
+      
+      // Create HTML email body
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4a69bd;">${fromName} shared a ${analysisType} analysis with you</h2>
+          <p>Hello,</p>
+          <p>${fromName} has shared a ${analysisType} analysis with you, generated using the ${getProviderName(provider)} AI model.</p>
+          <p>You can find the complete analysis in the attached document.</p>
+          <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #4a69bd;">
+            <p style="margin: 0; font-style: italic;">This analysis is for informational purposes only and should not be used for clinical diagnosis or treatment decisions.</p>
+          </div>
+          <p>Thank you for using Cognitive Profile App!</p>
+        </div>
+      `;
+      
+      // Send the email with attachment
+      const emailSent = await sendEmail({
+        to: recipientEmail,
+        subject,
+        html: htmlContent,
+        attachments: [
+          {
+            content: attachment,
+            filename: fileName,
+            type: attachmentType,
+            disposition: 'attachment'
+          }
+        ]
+      });
+      
+      if (emailSent) {
+        res.json({ success: true, message: "Analysis shared successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send email" });
+      }
+    } catch (error) {
+      console.error('Error sharing analysis:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to share analysis";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Combine analyses from multiple providers and export
+  app.post("/api/export-combined", async (req, res) => {
+    try {
+      const { analyses, analysisType, format } = req.body;
+      
+      if (!analyses || !analysisType || !format) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+      
+      // TODO: Implement combined document generation
+      res.status(501).json({ message: "Combined export not yet implemented" });
+    } catch (error) {
+      console.error('Error generating combined document:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate combined document";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  /**
+   * Helper to get a friendly provider name
+   */
+  function getProviderName(provider: ModelProvider): string {
+    switch (provider) {
+      case 'openai':
+        return 'OpenAI';
+      case 'anthropic':
+        return 'Claude';
+      case 'perplexity':
+        return 'Perplexity';
+      default:
+        return provider;
+    }
+  }
 
   const httpServer = createServer(app);
 

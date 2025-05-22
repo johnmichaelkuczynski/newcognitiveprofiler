@@ -1,10 +1,23 @@
-import React from "react";
-import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb } from "lucide-react";
+import React, { useState } from "react";
+import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, FileText, Mail, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PsychologicalAnalysisResult, ModelProvider } from "@/types/analysis";
 import { MultiProviderPsychologicalResult } from "@/hooks/usePsychologicalAnalysis";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 // Provider information for display
 const providerInfo: Record<string, {
@@ -38,25 +51,430 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
   const providers = Object.keys(result) as ModelProvider[];
   
   // Default to the first provider tab
-  const [activeProvider, setActiveProvider] = React.useState<ModelProvider>(providers[0] || "openai");
+  const [activeProvider, setActiveProvider] = useState<ModelProvider>(providers[0] || "openai");
+  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>(providers[0] || "openai");
+  const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+  
+  const copyResults = () => {
+    // Create a text representation of the current provider's results
+    const providerResult = result[activeProvider];
+    let resultsText = `PSYCHOLOGICAL PROFILE ANALYSIS\n\n`;
+    
+    resultsText += `${providerInfo[activeProvider].name} ANALYSIS:\n\n`;
+    
+    // Emotional profile
+    resultsText += `EMOTIONAL PROFILE:\n`;
+    resultsText += `Emotional Stability: ${providerResult.emotionalProfile.emotionalStability}/100\n`;
+    resultsText += `Primary Emotions: ${providerResult.emotionalProfile.primaryEmotions.join(', ')}\n`;
+    resultsText += `Analysis: ${providerResult.emotionalProfile.detailedAnalysis}\n\n`;
+    
+    // Motivational structure
+    resultsText += `MOTIVATIONAL STRUCTURE:\n`;
+    resultsText += `Primary Drives: ${providerResult.motivationalStructure.primaryDrives.join(', ')}\n`;
+    resultsText += `Motivational Patterns: ${providerResult.motivationalStructure.motivationalPatterns.join(', ')}\n`;
+    resultsText += `Analysis: ${providerResult.motivationalStructure.detailedAnalysis}\n\n`;
+    
+    // Interpersonal dynamics
+    resultsText += `INTERPERSONAL DYNAMICS:\n`;
+    resultsText += `Attachment Style: ${providerResult.interpersonalDynamics.attachmentStyle}\n`;
+    resultsText += `Social Orientations: ${providerResult.interpersonalDynamics.socialOrientations.join(', ')}\n`;
+    resultsText += `Relationship Patterns: ${providerResult.interpersonalDynamics.relationshipPatterns.join(', ')}\n`;
+    resultsText += `Analysis: ${providerResult.interpersonalDynamics.detailedAnalysis}\n\n`;
+    
+    // Strengths and challenges
+    resultsText += `PSYCHOLOGICAL STRENGTHS:\n`;
+    providerResult.strengths.forEach(strength => {
+      resultsText += `- ${strength}\n`;
+    });
+    resultsText += `\nGROWTH AREAS:\n`;
+    providerResult.challenges.forEach(challenge => {
+      resultsText += `- ${challenge}\n`;
+    });
+    
+    // Overall summary
+    resultsText += `\nOVERALL SUMMARY:\n${providerResult.overallSummary}\n`;
+    
+    navigator.clipboard.writeText(resultsText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  
+  const downloadResults = () => {
+    // Create a text representation of the current provider's results
+    const providerResult = result[activeProvider];
+    let resultsText = `PSYCHOLOGICAL PROFILE ANALYSIS\n\n`;
+    
+    resultsText += `${providerInfo[activeProvider].name} ANALYSIS:\n\n`;
+    
+    // Emotional profile
+    resultsText += `EMOTIONAL PROFILE:\n`;
+    resultsText += `Emotional Stability: ${providerResult.emotionalProfile.emotionalStability}/100\n`;
+    resultsText += `Primary Emotions: ${providerResult.emotionalProfile.primaryEmotions.join(', ')}\n`;
+    resultsText += `Analysis: ${providerResult.emotionalProfile.detailedAnalysis}\n\n`;
+    
+    // Motivational structure
+    resultsText += `MOTIVATIONAL STRUCTURE:\n`;
+    resultsText += `Primary Drives: ${providerResult.motivationalStructure.primaryDrives.join(', ')}\n`;
+    resultsText += `Motivational Patterns: ${providerResult.motivationalStructure.motivationalPatterns.join(', ')}\n`;
+    resultsText += `Analysis: ${providerResult.motivationalStructure.detailedAnalysis}\n\n`;
+    
+    // Interpersonal dynamics
+    resultsText += `INTERPERSONAL DYNAMICS:\n`;
+    resultsText += `Attachment Style: ${providerResult.interpersonalDynamics.attachmentStyle}\n`;
+    resultsText += `Social Orientations: ${providerResult.interpersonalDynamics.socialOrientations.join(', ')}\n`;
+    resultsText += `Relationship Patterns: ${providerResult.interpersonalDynamics.relationshipPatterns.join(', ')}\n`;
+    resultsText += `Analysis: ${providerResult.interpersonalDynamics.detailedAnalysis}\n\n`;
+    
+    // Strengths and challenges
+    resultsText += `PSYCHOLOGICAL STRENGTHS:\n`;
+    providerResult.strengths.forEach(strength => {
+      resultsText += `- ${strength}\n`;
+    });
+    resultsText += `\nGROWTH AREAS:\n`;
+    providerResult.challenges.forEach(challenge => {
+      resultsText += `- ${challenge}\n`;
+    });
+    
+    // Overall summary
+    resultsText += `\nOVERALL SUMMARY:\n${providerResult.overallSummary}\n`;
+    
+    // Create a blob and download link
+    const blob = new Blob([resultsText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `psychological-analysis-${activeProvider}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  const exportDocument = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Get the result for the selected provider
+      const providerResult = result[selectedProvider];
+      
+      // Create form data for the export request
+      const exportData = {
+        analysis: providerResult,
+        provider: selectedProvider,
+        analysisType: 'psychological',
+        format: documentFormat
+      };
+      
+      // Make API request to generate document
+      const response = await fetch('/api/export-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to export document');
+      }
+      
+      // Get the document as a blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `psychological-analysis-${selectedProvider}-${Date.now()}.${documentFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Document exported successfully",
+        description: `Your analysis has been exported as a ${documentFormat.toUpperCase()} file.`,
+      });
+    } catch (error) {
+      console.error('Error exporting document:', error);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export document. Please try again.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  const shareViaEmail = async () => {
+    try {
+      if (!recipientEmail) {
+        toast({
+          variant: "destructive",
+          title: "Email required",
+          description: "Please enter a recipient email address.",
+        });
+        return;
+      }
+      
+      setIsSharing(true);
+      
+      // Get the result for the selected provider
+      const providerResult = result[selectedProvider];
+      
+      // Create data for the email sharing request
+      const shareData = {
+        analysis: providerResult,
+        provider: selectedProvider,
+        analysisType: 'psychological',
+        format: documentFormat,
+        recipientEmail,
+        senderName
+      };
+      
+      // Make API request to share via email
+      const response = await fetch('/api/share-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(shareData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to share via email');
+      }
+      
+      toast({
+        title: "Analysis shared successfully",
+        description: `Your analysis has been sent to ${recipientEmail}.`,
+      });
+      
+      // Reset form
+      setRecipientEmail("");
+      setSenderName("");
+    } catch (error) {
+      console.error('Error sharing via email:', error);
+      toast({
+        variant: "destructive",
+        title: "Sharing failed",
+        description: error instanceof Error ? error.message : "Failed to share via email. Please try again.",
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   return (
     <div className="my-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-heading font-semibold text-secondary flex items-center">
           <Heart className="mr-2 h-6 w-6 text-primary" />
           Psychological Profile
         </h2>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onNewAnalysis}
-          className="flex items-center gap-1"
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span>New Analysis</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={copyResults}
+            className="flex items-center gap-1"
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span>{copied ? "Copied" : "Copy"}</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={downloadResults}
+            className="flex items-center gap-1"
+          >
+            <Download className="h-4 w-4" />
+            <span>Text</span>
+          </Button>
+          
+          {/* Export document dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Export</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Export Analysis</DialogTitle>
+                <DialogDescription>
+                  Export your psychological analysis as a PDF or Word document.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="provider" className="text-right">
+                    Provider
+                  </Label>
+                  <Select 
+                    value={selectedProvider} 
+                    onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                    name="provider"
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(result).map(([provider, _]) => (
+                        <SelectItem key={provider} value={provider}>
+                          {providerInfo[provider as ModelProvider].name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="format" className="text-right">
+                    Format
+                  </Label>
+                  <Select 
+                    value={documentFormat} 
+                    onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                    name="format"
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF Document</SelectItem>
+                      <SelectItem value="docx">Word Document</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" onClick={exportDocument} disabled={isExporting}>
+                  {isExporting ? "Exporting..." : "Export"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Share via email dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <Mail className="h-4 w-4" />
+                <span>Share</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Share Analysis</DialogTitle>
+                <DialogDescription>
+                  Share your psychological analysis with others via email.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="recipient@example.com"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Your Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="Optional"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="provider" className="text-right">
+                    Provider
+                  </Label>
+                  <Select 
+                    value={selectedProvider} 
+                    onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                    name="provider"
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(result).map(([provider, _]) => (
+                        <SelectItem key={provider} value={provider}>
+                          {providerInfo[provider as ModelProvider].name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="format" className="text-right">
+                    Format
+                  </Label>
+                  <Select 
+                    value={documentFormat} 
+                    onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                    name="format"
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF Document</SelectItem>
+                      <SelectItem value="docx">Word Document</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" onClick={shareViaEmail} disabled={isSharing}>
+                  {isSharing ? "Sending..." : "Send"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onNewAnalysis}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>New Analysis</span>
+          </Button>
+        </div>
       </div>
       
       <Tabs 

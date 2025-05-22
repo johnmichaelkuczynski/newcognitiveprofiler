@@ -1,12 +1,26 @@
 import React, { useState } from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers } from "lucide-react";
+import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
 import { MultiProviderAnalysisResult } from "@/hooks/useCognitiveAnalysis";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ResultsSectionProps {
   result: MultiProviderAnalysisResult;
@@ -118,6 +132,13 @@ function CognitiveProfileCard({
 export default function ResultsSection({ result, onNewAnalysis }: ResultsSectionProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("all-profiles");
+  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
+  const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const { toast } = useToast();
 
   // Calculate average intelligence score across all providers
   const averageScore = Math.round(
@@ -178,6 +199,124 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+  
+  const exportDocument = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Get the result for the selected provider
+      const providerResult = result[selectedProvider];
+      
+      // Create form data for the export request
+      const exportData = {
+        analysis: providerResult,
+        provider: selectedProvider,
+        analysisType: 'cognitive',
+        format: documentFormat
+      };
+      
+      // Make API request to generate document
+      const response = await fetch('/api/export-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to export document');
+      }
+      
+      // Get the document as a blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cognitive-analysis-${selectedProvider}-${Date.now()}.${documentFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Document exported successfully",
+        description: `Your analysis has been exported as a ${documentFormat.toUpperCase()} file.`,
+      });
+    } catch (error) {
+      console.error('Error exporting document:', error);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export document. Please try again.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  const shareViaEmail = async () => {
+    try {
+      if (!recipientEmail) {
+        toast({
+          variant: "destructive",
+          title: "Email required",
+          description: "Please enter a recipient email address.",
+        });
+        return;
+      }
+      
+      setIsSharing(true);
+      
+      // Get the result for the selected provider
+      const providerResult = result[selectedProvider];
+      
+      // Create data for the email sharing request
+      const shareData = {
+        analysis: providerResult,
+        provider: selectedProvider,
+        analysisType: 'cognitive',
+        format: documentFormat,
+        recipientEmail,
+        senderName
+      };
+      
+      // Make API request to share via email
+      const response = await fetch('/api/share-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(shareData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to share via email');
+      }
+      
+      toast({
+        title: "Analysis shared successfully",
+        description: `Your analysis has been sent to ${recipientEmail}.`,
+      });
+      
+      // Reset form
+      setRecipientEmail("");
+      setSenderName("");
+    } catch (error) {
+      console.error('Error sharing via email:', error);
+      toast({
+        variant: "destructive",
+        title: "Sharing failed",
+        description: error instanceof Error ? error.message : "Failed to share via email. Please try again.",
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   return (
     <section className="mb-8 max-w-5xl mx-auto">
@@ -202,8 +341,169 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 onClick={downloadResults}
               >
                 <Download className="h-4 w-4 mr-1" />
-                Download
+                Text
               </Button>
+              
+              {/* Export document dialog */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/10 hover:bg-white/20 text-white"
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Export Analysis</DialogTitle>
+                    <DialogDescription>
+                      Export your analysis as a PDF or Word document.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="provider" className="text-right">
+                        Provider
+                      </Label>
+                      <Select 
+                        value={selectedProvider} 
+                        onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                        name="provider"
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(result).map(([provider, _]) => (
+                            <SelectItem key={provider} value={provider}>
+                              {providerInfo[provider as ModelProvider].name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="format" className="text-right">
+                        Format
+                      </Label>
+                      <Select 
+                        value={documentFormat} 
+                        onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                        name="format"
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pdf">PDF Document</SelectItem>
+                          <SelectItem value="docx">Word Document</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" onClick={exportDocument} disabled={isExporting}>
+                      {isExporting ? "Exporting..." : "Export"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              {/* Share via email dialog */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/10 hover:bg-white/20 text-white"
+                  >
+                    <Mail className="h-4 w-4 mr-1" />
+                    Share
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Share Analysis</DialogTitle>
+                    <DialogDescription>
+                      Share your analysis with others via email.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="email" className="text-right">
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        placeholder="recipient@example.com"
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="name" className="text-right">
+                        Your Name
+                      </Label>
+                      <Input
+                        id="name"
+                        value={senderName}
+                        onChange={(e) => setSenderName(e.target.value)}
+                        placeholder="Optional"
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="provider" className="text-right">
+                        Provider
+                      </Label>
+                      <Select 
+                        value={selectedProvider} 
+                        onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                        name="provider"
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(result).map(([provider, _]) => (
+                            <SelectItem key={provider} value={provider}>
+                              {providerInfo[provider as ModelProvider].name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="format" className="text-right">
+                        Format
+                      </Label>
+                      <Select 
+                        value={documentFormat} 
+                        onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                        name="format"
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pdf">PDF Document</SelectItem>
+                          <SelectItem value="docx">Word Document</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" onClick={shareViaEmail} disabled={isSharing}>
+                      {isSharing ? "Sending..." : "Send"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
