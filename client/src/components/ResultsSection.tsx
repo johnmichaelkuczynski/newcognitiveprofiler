@@ -159,8 +159,10 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
 
   // Calculate average intelligence score across all providers
   const averageScore = Math.round(
-    Object.values(result).reduce((sum, profile) => sum + profile.intelligenceScore, 0) / 
-    Object.keys(result).length
+    Object.entries(result)
+      .filter(([key]) => key !== 'originalText') // Filter out the originalText property
+      .reduce((sum, [_, profile]) => sum + profile.intelligenceScore, 0) / 
+    (Object.keys(result).length - (result.originalText ? 1 : 0)) // Adjust length to account for originalText
   );
 
   const copyResults = () => {
