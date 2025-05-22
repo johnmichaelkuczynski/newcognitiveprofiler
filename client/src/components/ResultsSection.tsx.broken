@@ -329,25 +329,6 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     }
   };
 
-  // Function to generate a full comprehensive report
-  const handleGenerateFullReport = () => {
-    // Create a more comprehensive text for analysis
-    let textToAnalyze = "";
-    
-    // Use the current active tab provider or selected provider
-    const provider = activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider;
-    const analysis = result[provider];
-    
-    // Combine all text fields from the cognitive analysis
-    textToAnalyze = analysis.detailedAnalysis + "\n\n";
-    textToAnalyze += "Strengths: " + analysis.strengths.join(", ") + "\n\n";
-    textToAnalyze += "Tendencies: " + analysis.tendencies.join(", ") + "\n\n";
-    textToAnalyze += "Characteristics: " + analysis.characteristics.join(", ");
-    
-    // Generate the comprehensive report
-    generateReport(textToAnalyze, provider);
-  };
-
   return (
     <section className="mb-8 max-w-5xl mx-auto">
       <div className="bg-white rounded-xl shadow-card border border-neutral-200 overflow-hidden">
@@ -379,8 +360,56 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 variant="secondary" 
                 size="sm" 
                 className="bg-white/10 hover:bg-white/20 text-white"
-                onClick={handleGenerateFullReport}
+                onClick={() => {
+                  // Create a more comprehensive text for analysis
+                  let textToAnalyze = "";
+                  
+                  // Use the current active tab provider or selected provider
+                  const provider = activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider;
+                  const analysis = result[provider];
+                  
+                  // Combine all text fields from the cognitive analysis
+                  textToAnalyze = analysis.detailedAnalysis + "\n\n";
+                  textToAnalyze += "Strengths: " + analysis.strengths.join(", ") + "\n\n";
+                  textToAnalyze += "Tendencies: " + analysis.tendencies.join(", ") + "\n\n";
+                  textToAnalyze += "Characteristics: " + analysis.characteristics.join(", ");
+                  
+                  // Generate the comprehensive report
+                  generateReport(textToAnalyze, provider);
+                }}
                 disabled={isGenerating}
+              >
+                <BookOpen className="h-4 w-4 mr-1" />
+                {isGenerating ? "Generating..." : "Full Report"}
+              </Button>
+              
+              {/* Full Report button */}
+              <Button
+                variant="secondary" 
+                size="sm" 
+                className="bg-white/10 hover:bg-white/20 text-white"
+                onClick={() => {
+                  // Create a more comprehensive text for analysis
+                  let textToAnalyze = "";
+                  
+                  // Use the current active tab provider or selected provider
+                  const provider = activeTab === "all-profiles" ? selectedProvider : activeTab as ModelProvider;
+                  const analysis = result[provider];
+                  
+                  // Combine all text fields from the cognitive analysis
+                  textToAnalyze = analysis.detailedAnalysis + "\n\n";
+                  textToAnalyze += "Strengths: " + analysis.strengths.join(", ") + "\n\n";
+                  textToAnalyze += "Tendencies: " + analysis.tendencies.join(", ") + "\n\n";
+                  textToAnalyze += "Characteristics: " + analysis.characteristics.join(", ");
+                  
+                  // Generate the comprehensive report
+                  generateReport(textToAnalyze, provider);
+                }}
+                disabled={isGenerating}
+              >
+                <BookOpen className="h-4 w-4 mr-1" />
+                {isGenerating ? "Generating..." : "Full Report"}
+              </Button>
               >
                 <BookOpen className="h-4 w-4 mr-1" />
                 {isGenerating ? "Generating..." : "Full Report"}
@@ -402,7 +431,7 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                   <DialogHeader>
                     <DialogTitle>Export Analysis</DialogTitle>
                     <DialogDescription>
-                      Export your cognitive analysis as a document.
+                      Export your analysis as a PDF or Word document.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -410,17 +439,20 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                       <Label htmlFor="provider" className="text-right">
                         Provider
                       </Label>
-                      <Select
-                        value={selectedProvider}
+                      <Select 
+                        value={selectedProvider} 
                         onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                        name="provider"
                       >
                         <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select Provider" />
+                          <SelectValue placeholder="Select provider" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="openai">OpenAI</SelectItem>
-                          <SelectItem value="anthropic">Anthropic</SelectItem>
-                          <SelectItem value="perplexity">Perplexity</SelectItem>
+                          {Object.entries(result).map(([provider, _]) => (
+                            <SelectItem key={provider} value={provider}>
+                              {providerInfo[provider as ModelProvider].name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -428,12 +460,13 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                       <Label htmlFor="format" className="text-right">
                         Format
                       </Label>
-                      <Select
-                        value={documentFormat}
+                      <Select 
+                        value={documentFormat} 
                         onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                        name="format"
                       >
                         <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select Format" />
+                          <SelectValue placeholder="Select format" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pdf">PDF Document</SelectItem>
@@ -443,18 +476,14 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button 
-                      type="submit" 
-                      onClick={exportDocument}
-                      disabled={isExporting}
-                    >
-                      {isExporting ? "Exporting..." : `Export as ${documentFormat.toUpperCase()}`}
+                    <Button type="submit" onClick={exportDocument} disabled={isExporting}>
+                      {isExporting ? "Exporting..." : "Export"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
               
-              {/* Email sharing dialog */}
+              {/* Share via email dialog */}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
@@ -470,28 +499,10 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                   <DialogHeader>
                     <DialogTitle>Share Analysis</DialogTitle>
                     <DialogDescription>
-                      Share your cognitive analysis via email.
+                      Share your analysis with others via email.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="provider" className="text-right">
-                        Provider
-                      </Label>
-                      <Select
-                        value={selectedProvider}
-                        onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select Provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="openai">OpenAI</SelectItem>
-                          <SelectItem value="anthropic">Anthropic</SelectItem>
-                          <SelectItem value="perplexity">Perplexity</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="email" className="text-right">
                         Email
@@ -518,30 +529,48 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="provider" className="text-right">
+                        Provider
+                      </Label>
+                      <Select 
+                        value={selectedProvider} 
+                        onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                        name="provider"
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(result).map(([provider, _]) => (
+                            <SelectItem key={provider} value={provider}>
+                              {providerInfo[provider as ModelProvider].name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="format" className="text-right">
                         Format
                       </Label>
-                      <Select
-                        value={documentFormat}
+                      <Select 
+                        value={documentFormat} 
                         onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                        name="format"
                       >
                         <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select Format" />
+                          <SelectValue placeholder="Select format" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pdf">PDF</SelectItem>
-                          <SelectItem value="docx">Word</SelectItem>
+                          <SelectItem value="pdf">PDF Document</SelectItem>
+                          <SelectItem value="docx">Word Document</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button 
-                      type="submit" 
-                      onClick={shareViaEmail}
-                      disabled={isSharing || !recipientEmail}
-                    >
-                      {isSharing ? "Sending..." : "Send Email"}
+                    <Button type="submit" onClick={shareViaEmail} disabled={isSharing}>
+                      {isSharing ? "Sending..." : "Send"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -550,54 +579,66 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
           </div>
         </div>
         
-        <CardContent className="p-6">
-          <div className="mb-6">
-            <h3 className="font-heading text-lg mb-4">Combined Intelligence Estimate</h3>
-            <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-neutral-600">Average Score</span>
-                <span className="text-3xl font-bold text-primary">{averageScore}</span>
-              </div>
-              <div className="w-full h-4 bg-neutral-200 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: `${averageScore}%` }}></div>
-              </div>
-              <div className="flex justify-between mt-1 text-xs text-neutral-400">
-                <span>1</span>
-                <span>100</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mb-6">
-            <h3 className="font-heading text-lg mb-4">Provider Comparison</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(result).map(([provider, analysis]) => (
-                <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    {React.createElement(providerInfo[provider as ModelProvider].icon, { className: "h-4 w-4 text-primary" })}
-                    <span className="font-medium">{providerInfo[provider as ModelProvider].name}</span>
+        <div className="p-6">
+          {/* Tab navigation between views */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all-profiles" className="flex items-center gap-1">
+                <Layers className="h-4 w-4" />
+                <span>All Profiles</span>
+              </TabsTrigger>
+              {Object.entries(result).map(([provider, _]) => {
+                const { name, icon: Icon } = providerInfo[provider as ModelProvider];
+                return (
+                  <TabsTrigger key={provider} value={provider} className="flex items-center gap-1">
+                    <Icon className="h-4 w-4" />
+                    <span>{name}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            {/* All profiles view */}
+            <TabsContent value="all-profiles">
+              <div className="mb-6">
+                <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Combined Intelligence Estimate</h3>
+                <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 max-w-md mx-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-neutral-600">Average Score</span>
+                    <span className="text-3xl font-bold text-primary">{averageScore}</span>
                   </div>
-                  <div className="text-center py-2">
-                    <span className="text-3xl font-bold text-primary">{analysis.intelligenceScore}</span>
+                  <div className="w-full h-6 bg-neutral-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${averageScore}%` }}></div>
                   </div>
-                  <div className="text-center text-sm text-neutral-500">Intelligence Score</div>
+                  <div className="flex justify-between mt-1 text-xs text-neutral-500">
+                    <span>1</span>
+                    <span>100</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="font-heading text-lg mb-4">Individual Provider Analyses</h3>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-1 sm:grid-cols-4">
-                <TabsTrigger value="all-profiles">All Profiles</TabsTrigger>
-                <TabsTrigger value="openai">OpenAI</TabsTrigger>
-                <TabsTrigger value="anthropic">Anthropic</TabsTrigger>
-                <TabsTrigger value="perplexity">Perplexity</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="all-profiles" className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              </div>
+
+              <div className="mb-6">
+                <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Provider Comparison</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(result).map(([provider, analysis]) => {
+                    const { name, icon: Icon } = providerInfo[provider as ModelProvider];
+                    return (
+                      <div key={provider} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 flex flex-col items-center">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Icon className="h-5 w-5 text-primary" />
+                          <span className="font-medium">{name}</span>
+                        </div>
+                        <div className="text-3xl font-bold text-primary mb-1">{analysis.intelligenceScore}</div>
+                        <div className="text-sm text-neutral-600 text-center">Intelligence Score</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Individual Provider Analyses</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {Object.entries(result).map(([provider, analysis]) => (
                     <CognitiveProfileCard 
                       key={provider} 
@@ -606,53 +647,127 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                     />
                   ))}
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* Individual provider views */}
+            {Object.entries(result).map(([provider, analysis]) => (
+              <TabsContent key={provider} value={provider}>
+                <div className="p-4 border border-neutral-200 rounded-xl">
+                  <div className="flex items-center gap-2 mb-4">
+                    {(() => {
+                      const { name, icon: Icon } = providerInfo[provider as ModelProvider];
+                      return (
+                        <>
+                          <Icon className="h-6 w-6 text-primary" />
+                          <h3 className="font-heading font-medium text-lg">{name} Analysis</h3>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="mb-6">
+                    <div className="flex flex-col md:flex-row gap-6">
+                      <div className="flex-1">
+                        <div className="mb-6">
+                          <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Intelligence Estimate</h3>
+                          <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-neutral-600">Score</span>
+                              <span className="text-2xl font-bold text-primary">{analysis.intelligenceScore}</span>
+                            </div>
+                            <div className="w-full h-4 bg-neutral-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${analysis.intelligenceScore}%` }}></div>
+                            </div>
+                            <div className="flex justify-between mt-1 text-xs text-neutral-500">
+                              <span>1</span>
+                              <span>100</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1">
+                        <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Cognitive Characteristics</h3>
+                        <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                          <ul className="space-y-2">
+                            {analysis.characteristics.map((characteristic, idx) => (
+                              <li key={idx} className="flex items-center gap-2">
+                                <Check className="h-4 w-4 text-primary" />
+                                <span className="text-neutral-700">{characteristic}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Detailed Cognitive Analysis</h3>
+                    <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                      <div className="prose prose-sm max-w-none text-neutral-700">
+                        {analysis.detailedAnalysis.split('\n').map((paragraph, idx) => (
+                          <p key={idx}>{paragraph}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-heading font-medium text-lg text-secondary-light mb-3">Reasoning Style</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                        <h4 className="font-medium text-primary mb-2">Strengths</h4>
+                        <ul className="space-y-1 text-neutral-700 text-sm">
+                          {analysis.strengths.map((strength, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <Check className="h-4 w-4 text-success mt-0.5" />
+                              <span>{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                        <h4 className="font-medium text-primary mb-2">Cognitive Tendencies</h4>
+                        <ul className="space-y-1 text-neutral-700 text-sm">
+                          {analysis.tendencies.map((tendency, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-neutral-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span>{tendency}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
-              
-              <TabsContent value="openai" className="mt-4">
-                <CognitiveProfileCard 
-                  result={result.openai} 
-                  providerKey="openai" 
-                />
-              </TabsContent>
-              
-              <TabsContent value="anthropic" className="mt-4">
-                <CognitiveProfileCard 
-                  result={result.anthropic} 
-                  providerKey="anthropic" 
-                />
-              </TabsContent>
-              
-              <TabsContent value="perplexity" className="mt-4">
-                <CognitiveProfileCard 
-                  result={result.perplexity} 
-                  providerKey="perplexity" 
-                />
-              </TabsContent>
-            </Tabs>
+            ))}
+          </Tabs>
+
+          <div className="mt-8 flex justify-center">
+            <Button 
+              variant="secondary"
+              onClick={onNewAnalysis}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span>New Analysis</span>
+            </Button>
           </div>
-        </CardContent>
-      </div>
-      
-      <div className="flex justify-center mt-6">
-        <Button 
-          variant="outline" 
-          size="lg" 
-          onClick={onNewAnalysis}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Start New Analysis
-        </Button>
+        </div>
       </div>
       
       {/* Comprehensive Report Modal */}
-      {currentReport && (
-        <ComprehensiveReportModal 
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          report={currentReport}
-        />
-      )}
+      <ComprehensiveReportModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        report={currentReport}
+      />
     </section>
   );
 }
