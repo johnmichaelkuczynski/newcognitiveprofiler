@@ -4,7 +4,9 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 // Type for multi-provider analysis results
-export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysisResult>;
+export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysisResult> & {
+  originalText?: string; // Add original text to the result
+};
 
 export function useCognitiveAnalysis() {
   const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
@@ -14,7 +16,7 @@ export function useCognitiveAnalysis() {
     mutationFn: async ({ text }: { text: string }) => {
       const response = await apiRequest("POST", "/api/analyze-all", { text });
       const result = await response.json();
-      return result as MultiProviderAnalysisResult;
+      return { ...result, originalText: text };
     },
     onSuccess: (result) => {
       setData(result);
