@@ -1,6 +1,6 @@
 import { 
   Document, Paragraph, HeadingLevel, 
-  AlignmentType
+  AlignmentType, Packer
 } from 'docx';
 import PDFDocument from 'pdfkit';
 import type { CognitiveAnalysisResult, PsychologicalAnalysisResult, ModelProvider } from '../client/src/types/analysis';
@@ -24,10 +24,12 @@ export function generateWordDocument(
   // Return document as buffer
   return new Promise<Buffer>((resolve, reject) => {
     try {
-      // @ts-ignore - TypeScript definition issue with docx library
-      doc.verifier.verify();
-      const buffer = doc.createDocumentAsBase64();
-      resolve(Buffer.from(buffer, 'base64'));
+      // Generate a buffer from the document
+      const buffer = Buffer.from(
+        // @ts-ignore - TypeScript definition doesn't correctly recognize this method
+        Packer.toBuffer(doc)
+      );
+      resolve(buffer);
     } catch (error) {
       console.error('Error generating Word document:', error);
       reject(error);
