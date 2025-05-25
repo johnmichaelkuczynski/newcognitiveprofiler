@@ -3,7 +3,7 @@ import IntroSection from "@/components/IntroSection";
 import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
-import PsychologicalResultsSection from "@/components/PsychologicalResultsSection";
+import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
@@ -162,7 +162,7 @@ export default function Home() {
             )}
             
             {psychologicalResult && analysisType === "psychological" && (
-              <PsychologicalResultsSection 
+              <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
               />
