@@ -56,11 +56,15 @@ interface PsychologicalResultsSectionProps {
 }
 
 export default function PsychologicalResultsSection({ result, onNewAnalysis }: PsychologicalResultsSectionProps) {
-  const providers = Object.keys(result) as ModelProvider[];
+  // Filter out non-provider keys (like originalText) and get valid providers
+  const providers = Object.keys(result).filter(key => 
+    key !== 'originalText' && 
+    providerInfo[key as ModelProvider]
+  ) as ModelProvider[];
   
-  // Default to the first provider tab
-  const [activeProvider, setActiveProvider] = useState<ModelProvider>(providers[0] || "openai");
-  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>(providers[0] || "openai");
+  // Default to "openai" or the first available provider
+  const [activeProvider, setActiveProvider] = useState<ModelProvider>("openai");
+  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
   const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
