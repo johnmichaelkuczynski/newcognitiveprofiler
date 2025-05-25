@@ -386,9 +386,22 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
     <section className="mb-8 max-w-5xl mx-auto">
       <div className="bg-white rounded-xl shadow-card border border-neutral-200 overflow-hidden">
         <div className="bg-secondary p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <h2 className="font-heading font-semibold text-xl text-white">Multi-Provider Cognitive Profile</h2>
-            <div className="flex items-center gap-2">
+            
+            {/* New Analysis button at the top */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNewAnalysis()}
+              className="bg-white text-secondary hover:bg-white/90 border-white/20 font-medium"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              New Analysis
+            </Button>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
               <Button 
                 variant="secondary" 
                 size="sm" 
