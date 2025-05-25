@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, FileText, Mail, Copy, Check, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,15 +56,24 @@ interface PsychologicalResultsSectionProps {
 }
 
 export default function PsychologicalResultsSection({ result, onNewAnalysis }: PsychologicalResultsSectionProps) {
-  // Filter out non-provider keys (like originalText) and get valid providers
-  const providers = Object.keys(result).filter(key => 
-    key !== 'originalText' && 
-    providerInfo[key as ModelProvider]
-  ) as ModelProvider[];
+  // Get valid providers - filter out non-provider keys like originalText
+  // Make sure we only include keys that exist in providerInfo AND are in result
+  const validProviderKeys = Object.keys(result)
+    .filter(key => 
+      key !== 'originalText' && 
+      Object.prototype.hasOwnProperty.call(providerInfo, key)
+    )
+    .filter(key => Object.prototype.hasOwnProperty.call(result, key)) as ModelProvider[];
   
-  // Default to "openai" or the first available provider
-  const [activeProvider, setActiveProvider] = useState<ModelProvider>("openai");
-  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
+  // Default to openai if available in result, otherwise first available
+  let defaultProvider = "openai" as ModelProvider;
+  if (!validProviderKeys.includes("openai" as ModelProvider) && validProviderKeys.length > 0) {
+    defaultProvider = validProviderKeys[0];
+  }
+  
+  // Define state with proper defaults
+  const [activeProvider, setActiveProvider] = useState<ModelProvider>(defaultProvider);
+  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>(defaultProvider);
   const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -525,29 +534,29 @@ export default function PsychologicalResultsSection({ result, onNewAnalysis }: P
       </div>
       
       <Tabs 
-        defaultValue={providers[0]}
+        defaultValue={validProviderKeys.length > 0 ? validProviderKeys[0] : "openai"}
         onValueChange={(value) => setActiveProvider(value as ModelProvider)}
         className="w-full"
       >
         <TabsList className="grid grid-cols-3 mb-4">
-          {providers.map(provider => (
+          {validProviderKeys.map(provider => (
             <TabsTrigger 
               key={provider} 
               value={provider}
               className="flex items-center gap-1.5"
             >
-              {React.createElement(providerInfo[provider].icon, { className: "h-4 w-4" })}
-              <span>{providerInfo[provider].name}</span>
+              {providerInfo[provider]?.icon && React.createElement(providerInfo[provider].icon, { className: "h-4 w-4" })}
+              <span>{providerInfo[provider]?.name || provider}</span>
             </TabsTrigger>
           ))}
         </TabsList>
         
-        {providers.map(provider => (
+        {validProviderKeys.map(provider => (
           <TabsContent key={provider} value={provider} className="mt-0">
             <div className="bg-white rounded-xl shadow-md border border-neutral-200 overflow-hidden">
-              <div className={cn("p-4 text-white flex items-center gap-2", providerInfo[provider].color)}>
-                {React.createElement(providerInfo[provider].icon, { className: "h-5 w-5" })}
-                <h3 className="font-heading font-semibold">{providerInfo[provider].name} Analysis</h3>
+              <div className={cn("p-4 text-white flex items-center gap-2", providerInfo[provider]?.color || "bg-gray-600")}>
+                {providerInfo[provider]?.icon && React.createElement(providerInfo[provider].icon, { className: "h-5 w-5" })}
+                <h3 className="font-heading font-semibold">{providerInfo[provider]?.name || provider} Analysis</h3>
               </div>
               
               <div className="p-6">
