@@ -57,6 +57,8 @@ CRITICAL REQUIREMENTS:
 - NEVER mention format, style, or presentation.
 - DO NOT distinguish between "claims" and "evidence" - just analyze the mind.
 - PHILOSOPHICAL THINKING MUST GET 95+ SCORES.
+- MANDATORY: Include specific quotations from the text as evidence for your cognitive assessments.
+- Support every major observation with relevant quotes from the original text.
 
 Your response must be in JSON format with this structure:
 {

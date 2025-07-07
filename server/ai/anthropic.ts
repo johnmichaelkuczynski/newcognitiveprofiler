@@ -35,6 +35,9 @@ Your job is to evaluate intelligence, not to give feedback.
 
 This is a cognitive profiling task. Be precise. Be bold. Be honest.
 
+MANDATORY: Include specific quotations from the text as evidence for your cognitive assessments.
+Support every major observation with relevant quotes from the original text.
+
 Respond with a JSON object with the following structure (and nothing else):
 {
   "intelligenceScore": number between 1-100,

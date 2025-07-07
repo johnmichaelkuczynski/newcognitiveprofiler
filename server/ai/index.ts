@@ -1,13 +1,15 @@
 import { CognitiveAnalysisResult, PsychologicalAnalysisResult, AnalysisType } from "@/types/analysis";
+import { analyzeWithDeepSeek } from "./deepseek";
 import { analyzeWithOpenAI } from "./openai";
 import { analyzeWithAnthropic } from "./anthropic";
 import { analyzeWithPerplexity } from "./perplexity";
+import { analyzeWithDeepSeek as analyzePsychologicalWithDeepSeek } from "./psychological/deepseek";
 import { analyzeWithOpenAI as analyzePsychologicalWithOpenAI } from "./psychological/openai";
 import { analyzeWithAnthropic as analyzePsychologicalWithAnthropic } from "./psychological/anthropic";
 import { analyzeWithPerplexity as analyzePsychologicalWithPerplexity } from "./psychological/perplexity";
 
 // Define the supported model providers
-export type ModelProvider = "openai" | "anthropic" | "perplexity";
+export type ModelProvider = "deepseek" | "openai" | "anthropic" | "perplexity";
 
 /**
  * Validates the cognitive analysis result to ensure it meets our standards:
@@ -78,6 +80,9 @@ async function analyzeCognitiveTextWithProvider(text: string, provider: ModelPro
     try {
       // Call the appropriate AI service based on the provider
       switch (provider) {
+        case "deepseek":
+          result = await analyzeWithDeepSeek(enhancedText);
+          break;
         case "openai":
           result = await analyzeWithOpenAI(enhancedText);
           break;
@@ -126,6 +131,8 @@ async function analyzePsychologicalTextWithProvider(text: string, provider: Mode
   try {
     // Call the appropriate AI service based on the provider
     switch (provider) {
+      case "deepseek":
+        return await analyzePsychologicalWithDeepSeek(text);
       case "openai":
         return await analyzePsychologicalWithOpenAI(text);
       case "anthropic":
@@ -146,7 +153,7 @@ async function analyzePsychologicalTextWithProvider(text: string, provider: Mode
  */
 export async function analyzeText(
   text: string, 
-  provider: ModelProvider = "openai", 
+  provider: ModelProvider = "deepseek", 
   analysisType: AnalysisType = "cognitive"
 ): Promise<CognitiveAnalysisResult | PsychologicalAnalysisResult> {
   try {
@@ -165,7 +172,7 @@ export async function analyzeText(
  * Analyzes text using all providers for cognitive analysis and returns all results
  */
 export async function analyzeCognitiveTextWithAllProviders(text: string): Promise<Record<ModelProvider, CognitiveAnalysisResult>> {
-  const providers: ModelProvider[] = ["openai", "anthropic", "perplexity"];
+  const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
   const results: Partial<Record<ModelProvider, CognitiveAnalysisResult>> = {};
   
   for (const provider of providers) {
@@ -191,7 +198,7 @@ export async function analyzeCognitiveTextWithAllProviders(text: string): Promis
  * Analyzes text using all providers for psychological analysis and returns all results
  */
 export async function analyzePsychologicalTextWithAllProviders(text: string): Promise<Record<ModelProvider, PsychologicalAnalysisResult>> {
-  const providers: ModelProvider[] = ["openai", "anthropic", "perplexity"];
+  const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
   const results: Partial<Record<ModelProvider, PsychologicalAnalysisResult>> = {};
   
   for (const provider of providers) {

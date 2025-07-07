@@ -122,17 +122,20 @@ function generateDocumentContent(
     // Psychological analysis
     const psychAnalysis = analysis as PsychologicalAnalysisResult;
     
-    // Emotional profile
+    // Emotional Profile Section
     paragraphs.push(
       new Paragraph({
         text: 'Emotional Profile',
         heading: HeadingLevel.HEADING_2,
       }),
       new Paragraph({
-        text: `Emotional Stability: ${psychAnalysis.emotionalProfile.emotionalStability}/100`,
+        text: `Emotional Stability Score: ${psychAnalysis.emotionalProfile.emotionalStability}/100`,
       }),
+      new Paragraph({ text: '' }),
+      
       new Paragraph({
         text: 'Primary Emotions:',
+        heading: HeadingLevel.HEADING_3,
       })
     );
     
@@ -142,16 +145,27 @@ function generateDocumentContent(
     });
     
     paragraphs.push(
-      new Paragraph({ text: 'Analysis:' }),
-      new Paragraph({ text: psychAnalysis.emotionalProfile.detailedAnalysis }),
       new Paragraph({ text: '' }),
-      
-      // Motivational structure
+      new Paragraph({
+        text: 'Emotional Profile Analysis:',
+        heading: HeadingLevel.HEADING_3,
+      }),
+      new Paragraph({
+        text: psychAnalysis.emotionalProfile.detailedAnalysis,
+      }),
+      new Paragraph({ text: '' })
+    );
+    
+    // Motivational Structure Section
+    paragraphs.push(
       new Paragraph({
         text: 'Motivational Structure',
         heading: HeadingLevel.HEADING_2,
       }),
-      new Paragraph({ text: 'Primary Drives:' })
+      new Paragraph({
+        text: 'Primary Drives:',
+        heading: HeadingLevel.HEADING_3,
+      })
     );
     
     // Add each drive
@@ -159,7 +173,13 @@ function generateDocumentContent(
       paragraphs.push(new Paragraph({ text: `• ${drive}` }));
     });
     
-    paragraphs.push(new Paragraph({ text: 'Motivational Patterns:' }));
+    paragraphs.push(
+      new Paragraph({ text: '' }),
+      new Paragraph({
+        text: 'Motivational Patterns:',
+        heading: HeadingLevel.HEADING_3,
+      })
+    );
     
     // Add each pattern
     psychAnalysis.motivationalStructure.motivationalPatterns.forEach(pattern => {
@@ -167,11 +187,19 @@ function generateDocumentContent(
     });
     
     paragraphs.push(
-      new Paragraph({ text: 'Analysis:' }),
-      new Paragraph({ text: psychAnalysis.motivationalStructure.detailedAnalysis }),
       new Paragraph({ text: '' }),
-      
-      // Interpersonal dynamics
+      new Paragraph({
+        text: 'Motivational Structure Analysis:',
+        heading: HeadingLevel.HEADING_3,
+      }),
+      new Paragraph({
+        text: psychAnalysis.motivationalStructure.detailedAnalysis,
+      }),
+      new Paragraph({ text: '' })
+    );
+    
+    // Interpersonal Dynamics Section
+    paragraphs.push(
       new Paragraph({
         text: 'Interpersonal Dynamics',
         heading: HeadingLevel.HEADING_2,
@@ -179,7 +207,12 @@ function generateDocumentContent(
       new Paragraph({
         text: `Attachment Style: ${psychAnalysis.interpersonalDynamics.attachmentStyle}`,
       }),
-      new Paragraph({ text: 'Social Orientations:' })
+      new Paragraph({ text: '' }),
+      
+      new Paragraph({
+        text: 'Social Orientations:',
+        heading: HeadingLevel.HEADING_3,
+      })
     );
     
     // Add each orientation
@@ -187,7 +220,13 @@ function generateDocumentContent(
       paragraphs.push(new Paragraph({ text: `• ${orientation}` }));
     });
     
-    paragraphs.push(new Paragraph({ text: 'Relationship Patterns:' }));
+    paragraphs.push(
+      new Paragraph({ text: '' }),
+      new Paragraph({
+        text: 'Relationship Patterns:',
+        heading: HeadingLevel.HEADING_3,
+      })
+    );
     
     // Add each pattern
     psychAnalysis.interpersonalDynamics.relationshipPatterns.forEach(pattern => {
@@ -195,11 +234,19 @@ function generateDocumentContent(
     });
     
     paragraphs.push(
-      new Paragraph({ text: 'Analysis:' }),
-      new Paragraph({ text: psychAnalysis.interpersonalDynamics.detailedAnalysis }),
       new Paragraph({ text: '' }),
-      
-      // Strengths and challenges
+      new Paragraph({
+        text: 'Interpersonal Dynamics Analysis:',
+        heading: HeadingLevel.HEADING_3,
+      }),
+      new Paragraph({
+        text: psychAnalysis.interpersonalDynamics.detailedAnalysis,
+      }),
+      new Paragraph({ text: '' })
+    );
+    
+    // Strengths and Challenges Section
+    paragraphs.push(
       new Paragraph({
         text: 'Psychological Strengths',
         heading: HeadingLevel.HEADING_2,
@@ -211,9 +258,8 @@ function generateDocumentContent(
       paragraphs.push(new Paragraph({ text: `• ${strength}` }));
     });
     
-    paragraphs.push(new Paragraph({ text: '' }));
-    
     paragraphs.push(
+      new Paragraph({ text: '' }),
       new Paragraph({
         text: 'Psychological Challenges',
         heading: HeadingLevel.HEADING_2,
@@ -228,7 +274,7 @@ function generateDocumentContent(
     paragraphs.push(
       new Paragraph({ text: '' }),
       
-      // Overall summary
+      // Overall Summary Section
       new Paragraph({
         text: 'Overall Summary',
         heading: HeadingLevel.HEADING_2,
@@ -365,7 +411,7 @@ export function generatePdfDocument(
         // Psychological analysis
         const psychAnalysis = analysis as PsychologicalAnalysisResult;
         
-        // Emotional profile
+        // Emotional Profile Section
         doc.font('Helvetica-Bold')
            .fontSize(16)
            .text('Emotional Profile');
@@ -373,71 +419,80 @@ export function generatePdfDocument(
         doc.moveDown(0.5);
         doc.font('Helvetica')
            .fontSize(12)
-           .text(`Emotional Stability: ${psychAnalysis.emotionalProfile.emotionalStability}/100`);
+           .text(`Emotional Stability Score: ${psychAnalysis.emotionalProfile.emotionalStability}/100`);
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
+           .fontSize(14)
            .text('Primary Emotions:');
         
-        doc.font('Helvetica');
+        doc.font('Helvetica')
+           .fontSize(12);
         psychAnalysis.emotionalProfile.primaryEmotions.forEach(emotion => {
           doc.text(`• ${emotion}`);
         });
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
-           .text('Analysis:');
+           .fontSize(14)
+           .text('Emotional Profile Analysis:');
         
         doc.font('Helvetica')
+           .fontSize(12)
            .text(psychAnalysis.emotionalProfile.detailedAnalysis, {
              align: 'justify',
              paragraphGap: 5
            });
         
-        doc.moveDown();
+        doc.moveDown(1);
         
-        // Motivational structure
+        // Motivational Structure Section
         doc.font('Helvetica-Bold')
            .fontSize(16)
            .text('Motivational Structure');
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
-           .fontSize(12)
+           .fontSize(14)
            .text('Primary Drives:');
         
-        doc.font('Helvetica');
+        doc.font('Helvetica')
+           .fontSize(12);
         psychAnalysis.motivationalStructure.primaryDrives.forEach(drive => {
           doc.text(`• ${drive}`);
         });
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
+           .fontSize(14)
            .text('Motivational Patterns:');
         
-        doc.font('Helvetica');
+        doc.font('Helvetica')
+           .fontSize(12);
         psychAnalysis.motivationalStructure.motivationalPatterns.forEach(pattern => {
           doc.text(`• ${pattern}`);
         });
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
-           .text('Analysis:');
+           .fontSize(14)
+           .text('Motivational Structure Analysis:');
         
         doc.font('Helvetica')
+           .fontSize(12)
            .text(psychAnalysis.motivationalStructure.detailedAnalysis, {
              align: 'justify',
              paragraphGap: 5
            });
         
-        doc.moveDown();
+        doc.moveDown(1);
         
         // Add a new page if needed
         if (doc.y > 650) {
           doc.addPage();
         }
         
-        // Interpersonal dynamics
+        // Interpersonal Dynamics Section
         doc.font('Helvetica-Bold')
            .fontSize(16)
            .text('Interpersonal Dynamics');
@@ -449,40 +504,46 @@ export function generatePdfDocument(
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
+           .fontSize(14)
            .text('Social Orientations:');
         
-        doc.font('Helvetica');
+        doc.font('Helvetica')
+           .fontSize(12);
         psychAnalysis.interpersonalDynamics.socialOrientations.forEach(orientation => {
           doc.text(`• ${orientation}`);
         });
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
+           .fontSize(14)
            .text('Relationship Patterns:');
         
-        doc.font('Helvetica');
+        doc.font('Helvetica')
+           .fontSize(12);
         psychAnalysis.interpersonalDynamics.relationshipPatterns.forEach(pattern => {
           doc.text(`• ${pattern}`);
         });
         
         doc.moveDown(0.5);
         doc.font('Helvetica-Bold')
-           .text('Analysis:');
+           .fontSize(14)
+           .text('Interpersonal Dynamics Analysis:');
         
         doc.font('Helvetica')
+           .fontSize(12)
            .text(psychAnalysis.interpersonalDynamics.detailedAnalysis, {
              align: 'justify',
              paragraphGap: 5
            });
         
-        doc.moveDown();
+        doc.moveDown(1);
         
         // Add a new page if needed
         if (doc.y > 650) {
           doc.addPage();
         }
         
-        // Strengths and challenges
+        // Strengths and Challenges Section
         doc.font('Helvetica-Bold')
            .fontSize(16)
            .text('Psychological Strengths');
@@ -495,7 +556,7 @@ export function generatePdfDocument(
           doc.text(`• ${strength}`);
         });
         
-        doc.moveDown();
+        doc.moveDown(1);
         
         doc.font('Helvetica-Bold')
            .fontSize(16)
@@ -509,9 +570,9 @@ export function generatePdfDocument(
           doc.text(`• ${challenge}`);
         });
         
-        doc.moveDown();
+        doc.moveDown(1);
         
-        // Overall summary
+        // Overall Summary Section
         doc.font('Helvetica-Bold')
            .fontSize(16)
            .text('Overall Summary');
@@ -544,6 +605,8 @@ export function generatePdfDocument(
  */
 function getProviderName(provider: ModelProvider): string {
   switch (provider) {
+    case 'deepseek':
+      return 'DeepSeek';
     case 'openai':
       return 'OpenAI';
     case 'anthropic':

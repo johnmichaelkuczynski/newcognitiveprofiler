@@ -28,7 +28,7 @@ export interface PsychologicalAnalysisResult {
   overallSummary: string;
 }
 
-export type ModelProvider = "openai" | "anthropic" | "perplexity";
+export type ModelProvider = "deepseek" | "openai" | "anthropic" | "perplexity";
 
 export type AnalysisType = "cognitive" | "psychological";
 
