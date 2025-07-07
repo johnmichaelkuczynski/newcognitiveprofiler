@@ -16,14 +16,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CognitiveAnalysisResult, ModelProvider } from "@/types/analysis";
 import { MultiProviderAnalysisResult } from "@/hooks/useCognitiveAnalysis";
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +32,7 @@ const providerInfo: Record<string, {
   color: string;
   icon: React.ComponentType<any>;
 }> = {
+  deepseek: { name: "DeepSeek", color: "bg-gray-800", icon: Layers },
   openai: { name: "OpenAI", color: "bg-emerald-600", icon: Sparkles },
   anthropic: { name: "Anthropic", color: "bg-blue-600", icon: BrainCircuit },
   perplexity: { name: "Perplexity", color: "bg-purple-600", icon: Lightbulb }
@@ -426,7 +422,7 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                 variant="secondary" 
                 size="sm" 
                 className="bg-white/10 hover:bg-white/20 text-white"
-                onClick={handleFullReport}
+                onClick={() => handleFullReport()}
                 disabled={isGenerating}
               >
                 <BookOpen className="h-4 w-4 mr-1" />

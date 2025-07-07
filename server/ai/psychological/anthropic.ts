@@ -35,6 +35,9 @@ Treat the text as a psychological artifact. Your goal is to understand:
    - How do they relate to others? (collaborative, competitive, dependent, independent)
    - What patterns appear in how they perceive and respond to other people?
 
+MANDATORY: Include specific quotations from the text as evidence for your psychological assessments.
+Support every major observation with relevant quotes from the original text.
+
 Respond with a JSON object with the following structure (and nothing else):
 {
   "emotionalProfile": {

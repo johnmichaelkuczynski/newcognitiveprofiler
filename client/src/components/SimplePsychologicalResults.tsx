@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, Copy, Check, BookOpen } from "lucide-react";
+import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, Copy, Check, BookOpen, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 // Provider information for display
 const providerInfo = {
+  deepseek: {
+    name: "DeepSeek",
+    color: "bg-gray-800",
+    icon: Layers
+  },
   openai: {
     name: "OpenAI",
     color: "bg-emerald-600",
