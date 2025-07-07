@@ -605,7 +605,8 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
           </div>
         </div>
         
-        <CardContent className="p-6">
+        <Card className="mt-6">
+          <CardContent className="p-6">
           <div className="mb-6">
             <h3 className="font-heading text-lg mb-4">Provider Comparison</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -787,7 +788,7 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
             </Tabs>
           </div>
         </CardContent>
-      </div>
+      </Card>
       
       {/* Original Analyzed Text */}
       {result.originalText && (

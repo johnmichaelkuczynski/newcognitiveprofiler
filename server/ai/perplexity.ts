@@ -33,12 +33,46 @@ export async function analyzeWithPerplexity(text: string): Promise<CognitiveAnal
 // Helper functions to generate realistic-looking analysis
 
 function calculateIntelligenceScore(text: string): number {
-  // Calculate a score between 75-95 based on text length and complexity
-  const baseScore = 80;
-  const lengthBonus = Math.min(10, Math.floor(text.length / 500));
-  const complexityBonus = text.includes(' therefore ') || text.includes(' however ') ? 5 : 0;
+  // Enhanced scoring system for sophisticated academic texts
+  const words = text.split(/\s+/).length;
+  const avgWordLength = text.replace(/\s+/g, '').length / words;
+  const sentences = text.split(/[.!?]+/).length;
+  const avgSentenceLength = words / sentences;
   
-  return baseScore + lengthBonus + complexityBonus;
+  // Start with higher base score for academic texts
+  let score = 85; // Increased base score
+  
+  // Enhanced word complexity scoring
+  if (avgWordLength > 5) score += 6;
+  if (avgWordLength > 6) score += 5;
+  if (avgWordLength > 7) score += 4;
+  
+  // Enhanced sentence complexity scoring  
+  if (avgSentenceLength > 15) score += 5;
+  if (avgSentenceLength > 20) score += 4;
+  if (avgSentenceLength > 25) score += 3;
+  
+  // Enhanced text length scoring
+  if (words > 200) score += 3;
+  if (words > 500) score += 3;
+  if (words > 1000) score += 2;
+  
+  // Enhanced academic/technical indicators
+  const academicTerms = ['therefore', 'however', 'furthermore', 'consequently', 'nevertheless', 'philosophy', 'analysis', 'concept', 'theory', 'framework', 'proposition', 'semantic', 'linguistic', 'cognitive', 'epistemological', 'ontological'];
+  const termCount = academicTerms.filter(term => text.toLowerCase().includes(term)).length;
+  score += termCount * 2;
+  
+  // Look for high-level philosophical/academic concepts
+  const sophisticatedTerms = ['metaphysics', 'epistemology', 'phenomenology', 'hermeneutics', 'dialectical', 'transcendental', 'intentionality', 'morphemes', 'isomorphs', 'pragmatics', 'semantics'];
+  const sophisticatedCount = sophisticatedTerms.filter(term => text.toLowerCase().includes(term)).length;
+  score += sophisticatedCount * 3;
+  
+  // Bonus for systematic analysis patterns
+  if (text.includes('1.') || text.includes('2.') || text.includes('3.')) score += 3;
+  if (text.includes('Section') || text.includes('Chapter')) score += 2;
+  
+  // Recalibrated scoring range for academic texts
+  return Math.min(99, Math.max(80, score));
 }
 
 function generateCharacteristics(text: string): string[] {
