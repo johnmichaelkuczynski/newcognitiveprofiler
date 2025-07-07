@@ -25,6 +25,14 @@ IMPORTANT INSTRUCTIONS:
 4. Provide a numerical intelligence score (1-100) based on demonstrated cognitive abilities
 5. Be objective and analytical, not evaluative or judgmental
 
+CRITICAL SCORING CALIBRATION FOR ACADEMIC TEXTS:
+- 94-99: Exceptional academic analysis with original theoretical insights
+- 90-94: Highly sophisticated reasoning within established academic frameworks  
+- 85-89: Strong analytical thinking with good technical competence
+- 80-84: Competent reasoning with some analytical depth
+
+IMPORTANT: Academic texts with systematic analysis, precise terminology, and complex reasoning should score 90-99, not 80-89. A score of 83 means 17% of people are more intelligent - this is incorrect for sophisticated academic work.
+
 Analyze the following aspects:
 - Intelligence level and cognitive sophistication
 - Reasoning style (analytical, intuitive, systematic, etc.)
