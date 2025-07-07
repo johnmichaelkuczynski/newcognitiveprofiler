@@ -26,12 +26,22 @@ IMPORTANT INSTRUCTIONS:
 5. Be objective and analytical, not evaluative or judgmental
 
 CRITICAL SCORING CALIBRATION FOR ACADEMIC TEXTS:
-- 94-99: Exceptional academic analysis with original theoretical insights
-- 90-94: Highly sophisticated reasoning within established academic frameworks  
+For sophisticated academic texts showing systematic analysis, precise terminology, and complex reasoning, you MUST score 90-99, NOT lower.
+
+SCORING GUIDELINES:
+- 97-99: Revolutionary original philosophical analysis with novel theoretical frameworks
+- 94-96: Exceptional academic analysis demonstrating mastery and original insights
+- 90-93: Highly sophisticated academic reasoning with systematic conceptual analysis
 - 85-89: Strong analytical thinking with good technical competence
 - 80-84: Competent reasoning with some analytical depth
 
-IMPORTANT: Academic texts with systematic analysis, precise terminology, and complex reasoning should score 90-99, not 80-89. A score of 83 means 17% of people are more intelligent - this is incorrect for sophisticated academic work.
+CRITICAL: A score of 80 means 20% of people are more intelligent - this is WRONG for texts demonstrating:
+- PhD-level philosophical analysis (like semantics, epistemology, cognitive theory)
+- Systematic conceptual decomposition with precise terminology
+- Complex theoretical frameworks with original insights
+- Sophisticated argumentation structures
+
+Academic philosophical texts with systematic analysis should score 94-99, NOT 80-89.
 
 Analyze the following aspects:
 - Intelligence level and cognitive sophistication
