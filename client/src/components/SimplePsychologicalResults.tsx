@@ -304,11 +304,11 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis }: Si
                         <div>
                           <div className="font-medium mb-2">Primary Emotions</div>
                           <div className="flex flex-wrap gap-2">
-                            {providerData.emotionalProfile.primaryEmotions.map((emotion, index) => (
+                            {providerData.emotionalProfile.primaryEmotions?.map((emotion, index) => (
                               <span key={index} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
                                 {emotion}
                               </span>
-                            ))}
+                            )) || <span className="text-gray-500 text-sm">No emotions identified</span>}
                           </div>
                         </div>
                         
@@ -329,22 +329,22 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis }: Si
                         <div>
                           <div className="font-medium mb-2">Primary Drives</div>
                           <div className="flex flex-wrap gap-2">
-                            {providerData.motivationalStructure.primaryDrives.map((drive, index) => (
+                            {providerData.motivationalStructure.primaryDrives?.map((drive, index) => (
                               <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
                                 {drive}
                               </span>
-                            ))}
+                            )) || <span className="text-gray-500 text-sm">No drives identified</span>}
                           </div>
                         </div>
                         
                         <div>
                           <div className="font-medium mb-2">Motivational Patterns</div>
                           <div className="flex flex-wrap gap-2">
-                            {providerData.motivationalStructure.motivationalPatterns.map((pattern, index) => (
+                            {providerData.motivationalStructure.motivationalPatterns?.map((pattern, index) => (
                               <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                                 {pattern}
                               </span>
-                            ))}
+                            )) || <span className="text-gray-500 text-sm">No patterns identified</span>}
                           </div>
                         </div>
                         
@@ -372,22 +372,22 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis }: Si
                         <div>
                           <div className="font-medium mb-2">Social Orientations</div>
                           <div className="flex flex-wrap gap-2">
-                            {providerData.interpersonalDynamics.socialOrientations.map((orientation, index) => (
+                            {providerData.interpersonalDynamics.socialOrientations?.map((orientation, index) => (
                               <span key={index} className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-sm">
                                 {orientation}
                               </span>
-                            ))}
+                            )) || <span className="text-gray-500 text-sm">No orientations identified</span>}
                           </div>
                         </div>
                         
                         <div>
                           <div className="font-medium mb-2">Relationship Patterns</div>
                           <div className="flex flex-wrap gap-2">
-                            {providerData.interpersonalDynamics.relationshipPatterns.map((pattern, index) => (
+                            {providerData.interpersonalDynamics.relationshipPatterns?.map((pattern, index) => (
                               <span key={index} className="px-3 py-1 bg-sky-100 text-sky-800 rounded-full text-sm">
                                 {pattern}
                               </span>
-                            ))}
+                            )) || <span className="text-gray-500 text-sm">No patterns identified</span>}
                           </div>
                         </div>
                         
@@ -406,12 +406,12 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis }: Si
                       <div className="p-4 bg-white rounded-xl border border-neutral-200">
                         <h3 className="font-heading text-lg font-semibold mb-4">Psychological Strengths</h3>
                         <ul className="space-y-2">
-                          {providerData.strengths.map((strength, index) => (
+                          {providerData.strengths?.map((strength, index) => (
                             <li key={index} className="flex items-start gap-2">
                               <div className="min-w-4 mt-1 text-emerald-500">•</div>
                               <span>{strength}</span>
                             </li>
-                          ))}
+                          )) || <li className="text-gray-500 text-sm">No strengths identified</li>}
                         </ul>
                       </div>
                     )}
@@ -421,12 +421,12 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis }: Si
                       <div className="p-4 bg-white rounded-xl border border-neutral-200">
                         <h3 className="font-heading text-lg font-semibold mb-4">Growth Areas</h3>
                         <ul className="space-y-2">
-                          {providerData.challenges.map((challenge, index) => (
+                          {providerData.challenges?.map((challenge, index) => (
                             <li key={index} className="flex items-start gap-2">
                               <div className="min-w-4 mt-1 text-orange-500">•</div>
                               <span>{challenge}</span>
                             </li>
-                          ))}
+                          )) || <li className="text-gray-500 text-sm">No challenges identified</li>}
                         </ul>
                       </div>
                     )}
