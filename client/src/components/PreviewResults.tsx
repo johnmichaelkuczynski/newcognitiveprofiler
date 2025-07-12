@@ -96,7 +96,7 @@ export default function PreviewResults({
             <Alert className="mb-4">
               <CreditCard className="h-4 w-4" />
               <AlertDescription>
-                {registrationMessage}
+                Register for free to get full analysis. Create an account and purchase credits to unlock complete cognitive profiling.
               </AlertDescription>
             </Alert>
           )}
