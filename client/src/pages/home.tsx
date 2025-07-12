@@ -1,14 +1,18 @@
 import { useState } from "react";
+import Header from "@/components/Header";
 import IntroSection from "@/components/IntroSection";
 import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
 import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
+import PreviewResults from "@/components/PreviewResults";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
+import { usePreviewAnalysis } from "@/hooks/usePreviewAnalysis";
+import { useUser } from "@/contexts/UserContext";
 import { AnalysisType } from "@/types/analysis";
 import { AlertCircle, BrainCircuit, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +21,8 @@ export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [textSample, setTextSample] = useState("");
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
+  const [previewResult, setPreviewResult] = useState<any>(null);
+  const { user } = useUser();
   
   // Cognitive analysis hook
   const {
@@ -39,6 +45,17 @@ export default function Home() {
     data: psychologicalResult,
     reset: resetPsychological
   } = usePsychologicalAnalysis();
+  
+  // Preview analysis hook (for unregistered users)
+  const {
+    analyzeText: analyzePreviewText,
+    analyzeFile: analyzePreviewFile,
+    isLoading: isPreviewLoading,
+    isError: isPreviewError,
+    error: previewError,
+    data: previewAnalysisResult,
+    reset: resetPreview
+  } = usePreviewAnalysis();
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextSample(e.target.value);
@@ -53,7 +70,13 @@ export default function Home() {
       return;
     }
     
-    // Analyze with the selected analysis type
+    // If user is not registered, use preview analysis
+    if (!user) {
+      analyzePreviewText(textSample, analysisType);
+      return;
+    }
+    
+    // Analyze with the selected analysis type for registered users
     if (analysisType === "cognitive") {
       analyzeCognitiveText(textSample);
     } else {
@@ -62,9 +85,10 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    // Reset both analysis types to ensure a clean state
+    // Reset all analysis types to ensure a clean state
     resetCognitive();
     resetPsychological();
+    resetPreview();
     
     // Clear the text input
     setTextSample("");
@@ -73,6 +97,12 @@ export default function Home() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // If user is not registered, use preview analysis
+    if (!user) {
+      analyzePreviewFile(file, analysisType);
+      return;
+    }
 
     // Check if this is a text file (for simple reading) or a document (for server processing)
     const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -99,38 +129,28 @@ export default function Home() {
     }
   };
 
-  // Determine loading, error and result states based on the current analysis type
-  const isLoading = analysisType === "cognitive" ? isCognitiveLoading : isPsychologicalLoading;
-  const isError = analysisType === "cognitive" ? isCognitiveError : isPsychologicalError;
-  const error = analysisType === "cognitive" ? cognitiveError : psychologicalError;
-  const hasResult = analysisType === "cognitive" ? !!cognitiveResult : !!psychologicalResult;
+  // Determine loading, error and result states based on current analysis type and user status
+  const isLoading = user 
+    ? (analysisType === "cognitive" ? isCognitiveLoading : isPsychologicalLoading)
+    : isPreviewLoading;
+  
+  const isError = user 
+    ? (analysisType === "cognitive" ? isCognitiveError : isPsychologicalError)
+    : isPreviewError;
+  
+  const error = user 
+    ? (analysisType === "cognitive" ? cognitiveError : psychologicalError)
+    : previewError;
+  
+  const hasResult = user 
+    ? (analysisType === "cognitive" ? !!cognitiveResult : !!psychologicalResult)
+    : !!previewAnalysisResult;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-200 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h1 className="font-heading font-bold text-xl sm:text-2xl text-secondary">Mind Profiler</h1>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => setShowHelp(true)}
-              className="text-neutral-600 hover:text-primary p-2 rounded-full transition"
-            >
-              <AlertCircle className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
+        <Header onShowHelp={() => setShowHelp(true)} />
 
-      <main className="flex-grow container mx-auto px-4 py-6 sm:py-8 md:py-12">
         {!isLoading && !hasResult && !isError && (
           <>
             <IntroSection 
@@ -154,14 +174,26 @@ export default function Home() {
         
         {!isLoading && !isError && (
           <>
-            {cognitiveResult && analysisType === "cognitive" && (
+            {/* Show preview results for unregistered users */}
+            {!user && previewAnalysisResult && (
+              <PreviewResults 
+                preview={previewAnalysisResult.preview}
+                analysisType={previewAnalysisResult.analysisType}
+                registrationMessage={previewAnalysisResult.registrationMessage}
+                costs={previewAnalysisResult.costs}
+                onNewAnalysis={handleReset}
+              />
+            )}
+            
+            {/* Show full results for registered users */}
+            {user && cognitiveResult && analysisType === "cognitive" && (
               <ResultsSection 
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
               />
             )}
             
-            {psychologicalResult && analysisType === "psychological" && (
+            {user && psychologicalResult && analysisType === "psychological" && (
               <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
@@ -176,16 +208,16 @@ export default function Home() {
             onDismiss={handleReset}
           />
         )}
-      </main>
-
-      <Footer />
-      
-      {showHelp && (
-        <HelpModal 
-          isOpen={showHelp} 
-          onClose={() => setShowHelp(false)} 
-        />
-      )}
+        
+        <Footer />
+        
+        {showHelp && (
+          <HelpModal 
+            isOpen={showHelp} 
+            onClose={() => setShowHelp(false)} 
+          />
+        )}
+      </div>
     </div>
   );
 }
