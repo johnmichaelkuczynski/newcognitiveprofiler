@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+// Removed storage import - no authentication
 import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./ai";
 import { parseDocument } from "./documentParser";
 import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
