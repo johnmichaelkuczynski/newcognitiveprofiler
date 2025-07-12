@@ -8,18 +8,39 @@ export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysi
   originalText?: string; // Add original text to the result
 };
 
+// Type for preview result that might come from registered users without credits
+export type PreviewResult = {
+  preview: string;
+  isPreview: true;
+  provider: ModelProvider;
+  analysisType: string;
+  message: string;
+  registrationMessage: string;
+  costs: any;
+  userCredits?: number;
+  requiredCredits?: number;
+};
+
 export function useCognitiveAnalysis() {
   const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewResult | null>(null);
 
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
-      const response = await apiRequest("POST", "/api/analyze-all", { text });
+      const response = await apiRequest("POST", "/api/analyze-all", { text, analysisType: "cognitive" });
       const result = await response.json();
       return { ...result, originalText: text };
     },
     onSuccess: (result) => {
-      setData(result);
+      // Check if this is a preview response (user without credits)
+      if (result.isPreview) {
+        setPreviewData(result);
+        setData(null);
+      } else {
+        setData(result);
+        setPreviewData(null);
+      }
     },
   });
 
@@ -28,6 +49,7 @@ export function useCognitiveAnalysis() {
     mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('analysisType', 'cognitive');
       
       const response = await fetch('/api/upload-document-all', {
         method: 'POST',
@@ -43,7 +65,14 @@ export function useCognitiveAnalysis() {
       return result as MultiProviderAnalysisResult;
     },
     onSuccess: (result) => {
-      setData(result);
+      // Check if this is a preview response (user without credits)
+      if (result.isPreview) {
+        setPreviewData(result);
+        setData(null);
+      } else {
+        setData(result);
+        setPreviewData(null);
+      }
     },
   });
 
@@ -59,6 +88,7 @@ export function useCognitiveAnalysis() {
 
   const reset = () => {
     setData(null);
+    setPreviewData(null);
     textMutation.reset();
     fileMutation.reset();
   };
@@ -70,6 +100,7 @@ export function useCognitiveAnalysis() {
     isError: textMutation.isError || fileMutation.isError,
     error: textMutation.error || fileMutation.error,
     data,
+    previewData,
     reset,
   };
 }

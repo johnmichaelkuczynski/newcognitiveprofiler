@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Eye, CreditCard, UserPlus, Sparkles } from "lucide-react";
 import AuthModal from "./AuthModal";
+import PurchaseCreditsModal from "./PurchaseCreditsModal";
 
 interface PreviewResultsProps {
   preview: string;
@@ -12,6 +13,8 @@ interface PreviewResultsProps {
   registrationMessage: string;
   costs: Record<string, number>;
   onNewAnalysis: () => void;
+  userCredits?: number;
+  requiredCredits?: number;
 }
 
 export default function PreviewResults({ 
@@ -19,9 +22,15 @@ export default function PreviewResults({
   analysisType, 
   registrationMessage, 
   costs, 
-  onNewAnalysis 
+  onNewAnalysis,
+  userCredits,
+  requiredCredits
 }: PreviewResultsProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPurchaseCredits, setShowPurchaseCredits] = useState(false);
+  
+  // Determine if this is a registered user without credits
+  const isRegisteredUserWithoutCredits = typeof userCredits === 'number';
 
   return (
     <div className="space-y-6">
@@ -66,21 +75,31 @@ export default function PreviewResults({
         </CardContent>
       </Card>
 
-      {/* Registration Prompt */}
+      {/* Registration/Credit Prompt */}
       <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-blue-600" />
-            Unlock Full Analysis
+            {isRegisteredUserWithoutCredits ? 'Purchase Credits' : 'Unlock Full Analysis'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-4">
-            <CreditCard className="h-4 w-4" />
-            <AlertDescription>
-              {registrationMessage}
-            </AlertDescription>
-          </Alert>
+          {isRegisteredUserWithoutCredits ? (
+            <Alert className="mb-4">
+              <CreditCard className="h-4 w-4" />
+              <AlertDescription>
+                You need {requiredCredits} credits for full analysis, but you only have {userCredits} credits. 
+                Purchase more credits to unlock the complete analysis.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="mb-4">
+              <CreditCard className="h-4 w-4" />
+              <AlertDescription>
+                {registrationMessage}
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-4">
             <div className="bg-white p-4 rounded-lg border">
@@ -118,14 +137,25 @@ export default function PreviewResults({
             </div>
 
             <div className="flex gap-3">
-              <Button 
-                onClick={() => setShowAuthModal(true)}
-                className="flex-1"
-                size="lg"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Register Now
-              </Button>
+              {isRegisteredUserWithoutCredits ? (
+                <Button 
+                  onClick={() => setShowPurchaseCredits(true)}
+                  className="flex-1"
+                  size="lg"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Purchase Credits
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex-1"
+                  size="lg"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Register Now
+                </Button>
+              )}
               <Button 
                 variant="outline"
                 onClick={onNewAnalysis}
@@ -141,6 +171,11 @@ export default function PreviewResults({
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
+      />
+      
+      <PurchaseCreditsModal 
+        isOpen={showPurchaseCredits} 
+        onClose={() => setShowPurchaseCredits(false)} 
       />
     </div>
   );

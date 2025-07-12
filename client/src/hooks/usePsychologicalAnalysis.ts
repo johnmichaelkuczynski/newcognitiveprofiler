@@ -10,6 +10,7 @@ export type MultiProviderPsychologicalResult = Record<ModelProvider, Psychologic
 
 export function usePsychologicalAnalysis() {
   const [data, setData] = useState<MultiProviderPsychologicalResult | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
 
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
@@ -22,7 +23,14 @@ export function usePsychologicalAnalysis() {
       return { ...result, originalText: text };
     },
     onSuccess: (result) => {
-      setData(result);
+      // Check if this is a preview response (user without credits)
+      if (result.isPreview) {
+        setPreviewData(result);
+        setData(null);
+      } else {
+        setData(result);
+        setPreviewData(null);
+      }
     },
   });
 
@@ -47,7 +55,14 @@ export function usePsychologicalAnalysis() {
       return result as MultiProviderPsychologicalResult;
     },
     onSuccess: (result) => {
-      setData(result);
+      // Check if this is a preview response (user without credits)
+      if (result.isPreview) {
+        setPreviewData(result);
+        setData(null);
+      } else {
+        setData(result);
+        setPreviewData(null);
+      }
     },
   });
 
@@ -64,6 +79,7 @@ export function usePsychologicalAnalysis() {
   // Function to reset the state
   const reset = () => {
     setData(null);
+    setPreviewData(null);
     textMutation.reset();
     fileMutation.reset();
   };
@@ -75,6 +91,7 @@ export function usePsychologicalAnalysis() {
     isError: textMutation.isError || fileMutation.isError,
     error: textMutation.error || fileMutation.error,
     data,
+    previewData,
     reset,
   };
 }
