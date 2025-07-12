@@ -32,6 +32,7 @@ export default function Home() {
     isError: isCognitiveError,
     error: cognitiveError,
     data: cognitiveResult,
+    previewData: cognitivePreviewData,
     reset: resetCognitive
   } = useCognitiveAnalysis();
   
@@ -43,6 +44,7 @@ export default function Home() {
     isError: isPsychologicalError,
     error: psychologicalError,
     data: psychologicalResult,
+    previewData: psychologicalPreviewData,
     reset: resetPsychological
   } = usePsychologicalAnalysis();
   
@@ -142,9 +144,15 @@ export default function Home() {
     ? (analysisType === "cognitive" ? cognitiveError : psychologicalError)
     : previewError;
   
+  // Check for results (full analysis or preview data)
   const hasResult = user 
-    ? (analysisType === "cognitive" ? !!cognitiveResult : !!psychologicalResult)
+    ? (analysisType === "cognitive" ? (!!cognitiveResult || !!cognitivePreviewData) : (!!psychologicalResult || !!psychologicalPreviewData))
     : !!previewAnalysisResult;
+  
+  // Get the current preview data based on analysis type
+  const currentPreviewData = user 
+    ? (analysisType === "cognitive" ? cognitivePreviewData : psychologicalPreviewData)
+    : previewAnalysisResult;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -174,26 +182,28 @@ export default function Home() {
         
         {!isLoading && !isError && (
           <>
-            {/* Show preview results for unregistered users */}
-            {!user && previewAnalysisResult && (
+            {/* Show preview results for unregistered users OR registered users without credits */}
+            {currentPreviewData && (
               <PreviewResults 
-                preview={previewAnalysisResult.preview}
-                analysisType={previewAnalysisResult.analysisType}
-                registrationMessage={previewAnalysisResult.registrationMessage}
-                costs={previewAnalysisResult.costs}
+                preview={currentPreviewData.preview}
+                analysisType={currentPreviewData.analysisType}
+                registrationMessage={currentPreviewData.registrationMessage}
+                costs={currentPreviewData.costs}
                 onNewAnalysis={handleReset}
+                userCredits={currentPreviewData.userCredits}
+                requiredCredits={currentPreviewData.requiredCredits}
               />
             )}
             
-            {/* Show full results for registered users */}
-            {user && cognitiveResult && analysisType === "cognitive" && (
+            {/* Show full results for registered users with credits */}
+            {user && cognitiveResult && analysisType === "cognitive" && !cognitivePreviewData && (
               <ResultsSection 
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
               />
             )}
             
-            {user && psychologicalResult && analysisType === "psychological" && (
+            {user && psychologicalResult && analysisType === "psychological" && !psychologicalPreviewData && (
               <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}

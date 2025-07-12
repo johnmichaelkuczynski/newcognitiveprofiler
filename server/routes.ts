@@ -240,11 +240,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasEnough = await storage.hasCredits(req.user.id, cost);
       
       if (!hasEnough) {
-        return res.status(402).json({ 
-          message: "Insufficient credits. Please purchase more credits to continue.",
-          credits: req.user.credits,
-          required: cost,
-          costs: ANALYSIS_COSTS
+        // Instead of error, provide preview with purchase nudge
+        const preview = await generatePreview(text, "deepseek", analysisType);
+        return res.json({
+          ...preview,
+          registrationMessage: getRegistrationMessage(),
+          analysisType,
+          costs: ANALYSIS_COSTS,
+          isPreview: true,
+          userCredits: req.user.credits,
+          requiredCredits: cost
         });
       }
       
@@ -301,11 +306,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasEnough = await storage.hasCredits(req.user.id, cost);
       
       if (!hasEnough) {
-        return res.status(402).json({ 
-          message: "Insufficient credits. Please purchase more credits to continue.",
-          credits: req.user.credits,
-          required: cost,
-          costs: ANALYSIS_COSTS
+        // Instead of error, provide preview with purchase nudge
+        const preview = await generatePreview(text, modelProvider, analysisType);
+        return res.json({
+          ...preview,
+          registrationMessage: getRegistrationMessage(),
+          analysisType,
+          costs: ANALYSIS_COSTS,
+          isPreview: true,
+          userCredits: req.user.credits,
+          requiredCredits: cost
         });
       }
       
