@@ -1,6 +1,6 @@
 import { CognitiveAnalysisResult, PsychologicalAnalysisResult, MultiProviderAnalysisResult, MultiProviderPsychologicalResult } from "@/types/analysis";
 
-export const PREVIEW_SUFFIX = "\n\n🔒 This is a real preview. [Register & Unlock Full Access]";
+export const PREVIEW_SUFFIX = "\n\nThis is a real preview. Register to unlock full access.";
 
 export function truncateForPreview(text: string, maxWords: number = 200): string {
   const words = text.split(/\s+/);
