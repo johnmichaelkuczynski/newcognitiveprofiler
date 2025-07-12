@@ -1,533 +1,356 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { setupVite, serveStatic, log } from "./vite";
-import { analyzeTextWithAllProviders } from "./ai";
+import { storage } from "./storage";
+import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./ai";
+import { parseDocument } from "./documentParser";
+import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
+import { sendEmail } from "./emailService";
 import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
-import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
-import { parseDocument } from "./documentParser";
-import { sendEmail } from "./emailService";
-import { storage } from "./storage";
-import { registerUser, loginUser, isAuthenticated, getSessionUserId } from "./auth";
-import { createCheckoutSession, handleWebhook, calculateTokenCost, calculateDocumentTokens, TOKEN_PACKAGES } from "./stripe";
-import { createPreviewMultiProviderResult, createPreviewMultiProviderPsychologicalResult } from "./preview";
-import { createTables } from "./migrate";
-import session from "express-session";
-import express from "express";
 import multer from "multer";
-import { AnalysisType } from "@/types/analysis";
+import { z } from "zod";
+import { ZodError } from "zod";
+import { fromZodError } from "zod-validation-error";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const analyzeRequestSchema = z.object({
+  text: z.string().min(100, "Text must be at least 100 characters long"),
+  modelProvider: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
+  analysisType: z.enum(["cognitive", "psychological"]).default("cognitive")
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize database tables
-  if (process.env.DATABASE_URL) {
-    await createTables();
-  }
-
-  // Session middleware
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key-here',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  // Configure multer for file uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB file size limit
     },
-  }));
-
-  // Health check endpoint
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // Root health check endpoint for deployment
-  app.get("/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  // Authentication endpoints
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
-      }
-
-      const result = await registerUser(username, password);
-      
-      if (result.success && result.user) {
-        req.session.userId = result.user.id;
-        res.json({ success: true, user: { id: result.user.id, username: result.user.username, token_balance: result.user.token_balance } });
-      } else {
-        res.status(400).json({ error: result.message });
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ error: "Registration failed" });
-    }
-  });
-
-  app.post("/api/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
-      }
-
-      const result = await loginUser(username, password);
-      
-      if (result.success && result.user) {
-        req.session.userId = result.user.id;
-        res.json({ success: true, user: { id: result.user.id, username: result.user.username, token_balance: result.user.token_balance } });
-      } else {
-        res.status(400).json({ error: result.message });
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ error: "Login failed" });
-    }
-  });
-
-  app.post("/api/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Logout failed" });
-      }
-      res.json({ success: true });
-    });
-  });
-
-  app.get("/api/me", async (req, res) => {
-    try {
-      const userId = getSessionUserId(req.session);
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      res.json({ user: { id: user.id, username: user.username, token_balance: user.token_balance } });
-    } catch (error) {
-      console.error("Get user error:", error);
-      res.status(500).json({ error: "Failed to get user" });
-    }
-  });
-
-  // Token purchase endpoints
-  app.get("/api/token-packages", (req, res) => {
-    res.json(TOKEN_PACKAGES);
-  });
-
-  app.post("/api/create-checkout-session", async (req, res) => {
-    try {
-      const userId = getSessionUserId(req.session);
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { packageIndex } = req.body;
-      if (typeof packageIndex !== 'number' || packageIndex < 0 || packageIndex >= TOKEN_PACKAGES.length) {
-        return res.status(400).json({ error: "Invalid package selected" });
-      }
-
-      const checkoutUrl = await createCheckoutSession(userId, packageIndex);
-      res.json({ url: checkoutUrl });
-    } catch (error) {
-      console.error("Checkout session error:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
-    }
-  });
-
-  // Stripe webhook endpoint
-  app.post("/api/stripe-webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-      const signature = req.headers['stripe-signature'] as string;
-      await handleWebhook(req.body, signature);
-      res.json({ received: true });
-    } catch (error) {
-      console.error("Webhook error:", error);
-      res.status(400).json({ error: "Webhook failed" });
-    }
-  });
-
-  // Analyze text endpoint for both cognitive and psychological analysis
+  // Analysis endpoint - using all providers
   app.post("/api/analyze-all", async (req, res) => {
     try {
-      const { text, analysisType = "cognitive" } = req.body;
+      // Validate request body
+      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      if (!text || typeof text !== "string") {
-        return res.status(400).json({ error: "Text is required" });
-      }
-
-      if (text.length < 100) {
-        return res.status(400).json({ error: "Text must be at least 100 characters long" });
-      }
-
-      const userId = getSessionUserId(req.session);
-      const isLoggedIn = !!userId;
-
-      console.log(`Starting ${analysisType} analysis...`);
-      let result = await analyzeTextWithAllProviders(text, analysisType as AnalysisType);
+      // Call all AI APIs and get combined results
+      const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      if (isLoggedIn) {
-        // Calculate and deduct tokens for registered users
-        const inputTokens = Math.ceil(text.length / 4); // Rough estimate: 4 chars per token
-        const outputTokens = Math.ceil(JSON.stringify(result).length / 4);
-        const totalTokens = await calculateTokenCost(inputTokens, outputTokens);
-        
-        const deductionSuccess = await storage.deductTokens(userId, totalTokens, `${analysisType} analysis`);
-        
-        if (!deductionSuccess) {
-          return res.status(402).json({ 
-            error: "Insufficient tokens", 
-            tokensNeeded: totalTokens,
-            message: "🔒 You've used all your credits. [Buy More Credits]" 
-          });
-        }
-      } else {
-        // Return preview for unregistered users
-        if (analysisType === "cognitive") {
-          result = createPreviewMultiProviderResult(result);
-        } else {
-          result = createPreviewMultiProviderPsychologicalResult(result);
-        }
-      }
-      
-      res.json(result);
+      // Return all analysis results
+      res.json(analyses);
     } catch (error) {
-      console.error("Analysis error:", error);
-      res.status(500).json({ error: "Analysis failed" });
+      console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: fromZodError(error).message 
+        });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
+      res.status(500).json({ 
+        message: errorMessage 
+      });
+    }
+  });
+  
+  // Analysis endpoint - single provider
+  app.post("/api/analyze", async (req, res) => {
+    try {
+      // Validate request body
+      const { text, modelProvider, analysisType } = analyzeRequestSchema.parse(req.body);
+      
+      // Call appropriate AI API based on selected provider and analysis type
+      const analysis = await analyzeText(text, modelProvider, analysisType);
+      
+      // Return the analysis result
+      res.json(analysis);
+    } catch (error) {
+      console.error(`Error analyzing text (${req.body.analysisType || 'cognitive'}):`, error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: fromZodError(error).message 
+        });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
+      res.status(500).json({ 
+        message: errorMessage 
+      });
     }
   });
 
-  // File upload endpoint
-  app.post("/api/upload", upload.single("file"), async (req, res) => {
+  // File upload endpoint for document analysis with all providers
+  app.post("/api/upload-document-all", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+        return res.status(400).json({ message: "No file uploaded" });
       }
-
-      const userId = getSessionUserId(req.session);
-      const isLoggedIn = !!userId;
-
-      // Parse the uploaded file
+      
+      // Get analysis type (defaults to cognitive)
+      const analysisType = req.body.analysisType || 'cognitive';
+      
+      // Parse the document to extract text based on file type
       const extractedText = await parseDocument(req.file);
       
-      if (!extractedText || extractedText.length < 100) {
+      // Check the text length
+      if (extractedText.length < 100) {
         return res.status(400).json({ 
-          error: "Could not extract enough text from the file. Please ensure the file contains at least 100 characters of readable text." 
+          message: "The extracted text is too short. Please upload a document with more content (minimum 100 characters)." 
         });
       }
-
-      const wordCount = extractedText.split(/\s+/).length;
-
-      if (isLoggedIn) {
-        // Calculate and deduct tokens for document processing
-        const tokens = await calculateDocumentTokens(wordCount);
-        const deductionSuccess = await storage.deductTokens(userId, tokens, `Document upload: ${req.file.originalname}`);
-        
-        if (!deductionSuccess) {
-          return res.status(402).json({ 
-            error: "Insufficient tokens for document processing", 
-            tokensNeeded: tokens,
-            message: "🔒 You've used all your credits. [Buy More Credits]" 
-          });
-        }
-
-        // Save document for registered users
-        await storage.saveDocument({
-          user_id: userId,
-          filename: req.file.originalname,
-          content: extractedText,
-          word_count: wordCount,
-        });
-      }
-
-      res.json({ 
-        text: extractedText,
-        filename: req.file.originalname,
-        size: req.file.size,
-        wordCount: wordCount,
-        isPreview: !isLoggedIn,
-        message: isLoggedIn ? undefined : "🔒 Uploading for long-term storage requires registration. [Register & Unlock]"
-      });
-
+      
+      // Analyze the extracted text using all AI providers
+      const analyses = await analyzeTextWithAllProviders(extractedText, analysisType);
+      
+      // Return all analysis results
+      res.json(analyses);
     } catch (error) {
-      console.error("Upload error:", error);
-      res.status(500).json({ error: "File upload failed" });
+      console.error(`Error processing document with all providers (${req.body.analysisType || 'cognitive'}):`, error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
-  // User documents endpoint
-  app.get("/api/my-documents", async (req, res) => {
+  // File upload endpoint for document analysis (single provider)
+  app.post("/api/upload-document", upload.single('file'), async (req, res) => {
     try {
-      const userId = getSessionUserId(req.session);
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const documents = await storage.getUserDocuments(userId);
-      res.json(documents);
-    } catch (error) {
-      console.error("Get documents error:", error);
-      res.status(500).json({ error: "Failed to get documents" });
-    }
-  });
-
-  // Delete document endpoint
-  app.delete("/api/documents/:id", async (req, res) => {
-    try {
-      const userId = getSessionUserId(req.session);
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      await storage.deleteDocument(req.params.id, userId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Delete document error:", error);
-      res.status(500).json({ error: "Failed to delete document" });
-    }
-  });
-
-  // Generate comprehensive cognitive report
-  app.post("/api/generate-report", async (req, res) => {
-    try {
-      const { text, provider = "openai" } = req.body;
+      // Get model provider and analysis type
+      const modelProvider = req.body.modelProvider || 'openai';
+      const analysisType = req.body.analysisType || 'cognitive';
       
-      if (!text || typeof text !== "string") {
-        return res.status(400).json({ error: "Text is required" });
-      }
-
-      const userId = getSessionUserId(req.session);
+      // Parse the document to extract text based on file type
+      const extractedText = await parseDocument(req.file);
       
-      if (!userId) {
-        return res.status(401).json({ error: "Registration required for full reports" });
-      }
-
-      // Calculate tokens for comprehensive report (higher cost)
-      const inputTokens = Math.ceil(text.length / 4);
-      const estimatedOutputTokens = 2000; // Comprehensive reports are longer
-      const totalTokens = await calculateTokenCost(inputTokens, estimatedOutputTokens);
-      
-      const deductionSuccess = await storage.deductTokens(userId, totalTokens, `Comprehensive report: ${provider}`);
-      
-      if (!deductionSuccess) {
-        return res.status(402).json({ 
-          error: "Insufficient tokens", 
-          tokensNeeded: totalTokens,
-          message: "🔒 You've used all your credits. [Buy More Credits]" 
+      // Check the text length
+      if (extractedText.length < 100) {
+        return res.status(400).json({ 
+          message: "The extracted text is too short. Please upload a document with more content (minimum 100 characters)." 
         });
       }
-
-      console.log(`Generating comprehensive report with ${provider}...`);
-      const report = await generateComprehensiveReport(text, provider);
       
-      res.json(report);
+      // Analyze the extracted text using the selected AI provider and analysis type
+      const analysis = await analyzeText(extractedText, modelProvider as ModelProvider, analysisType);
+      
+      // Return the analysis result
+      res.json(analysis);
     } catch (error) {
-      console.error("Report generation error:", error);
-      res.status(500).json({ error: "Report generation failed" });
+      console.error(`Error processing document (${req.body.analysisType || 'cognitive'}):`, error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
-  // Generate comprehensive psychological report
-  app.post("/api/generate-psychological-report", async (req, res) => {
+  // Export analysis as document (PDF or Word)
+  app.post("/api/export-document", async (req, res) => {
     try {
-      const { text, provider = "openai" } = req.body;
+      const { analysis, provider, analysisType, format } = req.body;
       
-      if (!text || typeof text !== "string") {
-        return res.status(400).json({ error: "Text is required" });
+      if (!analysis || !provider || !analysisType || !format) {
+        return res.status(400).json({ message: "Missing required parameters" });
       }
-
-      const userId = getSessionUserId(req.session);
       
-      if (!userId) {
-        return res.status(401).json({ error: "Registration required for full reports" });
-      }
-
-      // Calculate tokens for comprehensive report (higher cost)
-      const inputTokens = Math.ceil(text.length / 4);
-      const estimatedOutputTokens = 2000; // Comprehensive reports are longer
-      const totalTokens = await calculateTokenCost(inputTokens, estimatedOutputTokens);
-      
-      const deductionSuccess = await storage.deductTokens(userId, totalTokens, `Comprehensive psychological report: ${provider}`);
-      
-      if (!deductionSuccess) {
-        return res.status(402).json({ 
-          error: "Insufficient tokens", 
-          tokensNeeded: totalTokens,
-          message: "🔒 You've used all your credits. [Buy More Credits]" 
-        });
-      }
-
-      console.log(`Generating comprehensive psychological report with ${provider}...`);
-      const report = await generateComprehensivePsychologicalReport(text, provider);
-      
-      res.json(report);
-    } catch (error) {
-      console.error("Psychological report generation error:", error);
-      res.status(500).json({ error: "Psychological report generation failed" });
-    }
-  });
-
-  // Document generation endpoint
-  app.post("/api/generate-document", async (req, res) => {
-    try {
-      const { analysisResult, provider, format = "pdf" } = req.body;
-      
-      if (!analysisResult || !provider) {
-        return res.status(400).json({ error: "Analysis result and provider are required" });
-      }
-
-      const userId = getSessionUserId(req.session);
-      
-      if (!userId) {
-        return res.status(401).json({ error: "Registration required for document generation" });
-      }
-
-      // Deduct tokens for document generation
-      const tokens = 50; // Fixed cost for document generation
-      const deductionSuccess = await storage.deductTokens(userId, tokens, `Document generation: ${format}`);
-      
-      if (!deductionSuccess) {
-        return res.status(402).json({ 
-          error: "Insufficient tokens", 
-          tokensNeeded: tokens,
-          message: "🔒 You've used all your credits. [Buy More Credits]" 
-        });
-      }
-
       let buffer: Buffer;
-      let filename: string;
       let contentType: string;
-
-      if (format === "docx") {
-        buffer = await generateWordDocument(analysisResult, provider);
-        filename = `cognitive-analysis-${provider}-${Date.now()}.docx`;
-        contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      let fileName: string;
+      
+      // Generate the appropriate document format
+      if (format === 'pdf') {
+        buffer = await generatePdfDocument(analysis, provider, analysisType);
+        contentType = 'application/pdf';
+        fileName = `${analysisType}-analysis-${provider}-${Date.now()}.pdf`;
+      } else if (format === 'docx') {
+        buffer = await generateWordDocument(analysis, provider, analysisType);
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        fileName = `${analysisType}-analysis-${provider}-${Date.now()}.docx`;
       } else {
-        buffer = await generatePdfDocument(analysisResult, provider);
-        filename = `cognitive-analysis-${provider}-${Date.now()}.pdf`;
-        contentType = "application/pdf";
+        return res.status(400).json({ message: "Invalid format specified" });
       }
-
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      
+      // Set the appropriate headers for file download
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      res.setHeader('Content-Length', buffer.length);
+      
+      // Send the file
       res.send(buffer);
-
     } catch (error) {
-      console.error("Document generation error:", error);
-      res.status(500).json({ error: "Document generation failed" });
+      console.error('Error generating document:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate document";
+      res.status(500).json({ message: errorMessage });
     }
   });
-
-  // Email sharing endpoint
+  
+  // Share analysis via email
   app.post("/api/share-email", async (req, res) => {
     try {
-      const { 
-        analysisResult, 
-        provider, 
-        recipientEmail, 
-        senderName, 
-        format = "pdf" 
-      } = req.body;
+      const { analysis, provider, analysisType, format, recipientEmail, senderName } = req.body;
       
-      if (!analysisResult || !provider || !recipientEmail) {
-        return res.status(400).json({ 
-          error: "Analysis result, provider, and recipient email are required" 
-        });
+      if (!analysis || !provider || !analysisType || !format || !recipientEmail) {
+        return res.status(400).json({ message: "Missing required parameters" });
       }
-
-      const userId = getSessionUserId(req.session);
       
-      if (!userId) {
-        return res.status(401).json({ error: "Registration required for email sharing" });
-      }
-
-      // Deduct tokens for email sharing
-      const tokens = 100; // Fixed cost for email sharing
-      const deductionSuccess = await storage.deductTokens(userId, tokens, `Email sharing: ${recipientEmail}`);
-      
-      if (!deductionSuccess) {
-        return res.status(402).json({ 
-          error: "Insufficient tokens", 
-          tokensNeeded: tokens,
-          message: "🔒 You've used all your credits. [Buy More Credits]" 
-        });
-      }
-
+      // Generate the document for attachment
       let buffer: Buffer;
-      let filename: string;
-      let contentType: string;
-
-      if (format === "docx") {
-        buffer = await generateWordDocument(analysisResult, provider);
-        filename = `cognitive-analysis-${provider}-${Date.now()}.docx`;
-        contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      let attachmentType: string;
+      let fileName: string;
+      
+      if (format === 'pdf') {
+        buffer = await generatePdfDocument(analysis, provider, analysisType);
+        attachmentType = 'application/pdf';
+        fileName = `${analysisType}-analysis-${provider}.pdf`;
+      } else if (format === 'docx') {
+        buffer = await generateWordDocument(analysis, provider, analysisType);
+        attachmentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        fileName = `${analysisType}-analysis-${provider}.docx`;
       } else {
-        buffer = await generatePdfDocument(analysisResult, provider);
-        filename = `cognitive-analysis-${provider}-${Date.now()}.pdf`;
-        contentType = "application/pdf";
+        return res.status(400).json({ message: "Invalid format specified" });
       }
+      
+      // Convert buffer to base64 for email attachment
+      const attachment = buffer.toString('base64');
+      
+      // Create email content
+      const subject = `${senderName || 'Someone'} shared a ${analysisType} analysis with you`;
+      const fromName = senderName || 'Cognitive Profile App';
+      
+      // Create HTML email body with more details
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4a69bd;">${fromName} shared a ${analysisType} analysis with you</h2>
+          <p>Hello,</p>
+          <p>${fromName} has shared a ${analysisType} analysis with you, generated using the ${getProviderName(provider)} AI model.</p>
+          <p>This analysis examines ${analysisType === 'cognitive' ? 'thinking patterns, reasoning style, and intellectual tendencies' : 'emotional patterns, motivational structure, and interpersonal dynamics'} based on text analysis.</p>
+          <p>You can find the complete analysis in the attached document (${format.toUpperCase()} format).</p>
+          <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #4a69bd;">
+            <p style="margin: 0; font-style: italic;">This analysis is for informational purposes only and should not be used for clinical diagnosis or treatment decisions.</p>
+          </div>
+          <p>Thank you for using Cognitive Profile App!</p>
+        </div>
+      `;
+      
+      // Send a simple text email that's more likely to deliver successfully
+      const plainTextContent = `
+${fromName} shared a ${analysisType} analysis with you.
 
-      // Send email with attachment
+This analysis was generated using the ${getProviderName(provider)} AI model.
+
+The analysis examines ${analysisType === 'cognitive' ? 'thinking patterns, reasoning style, and intellectual tendencies' : 'emotional patterns, motivational structure, and interpersonal dynamics'} based on text analysis.
+
+Thank you for using Cognitive Profile App!
+      `;
+
       const emailSent = await sendEmail({
         to: recipientEmail,
-        subject: `Cognitive Analysis Report - ${getProviderName(provider)}`,
-        html: `
-          <h2>Cognitive Analysis Report</h2>
-          <p>Hello,</p>
-          <p>${senderName ? `${senderName} has` : 'Someone has'} shared a cognitive analysis report with you.</p>
-          <p>The report is attached to this email and contains insights about cognitive patterns and intelligence analysis.</p>
-          <p>Best regards,<br>The Cognitive Profiler Team</p>
-        `,
-        attachments: [{
-          content: buffer.toString('base64'),
-          filename: filename,
-          type: contentType,
-          disposition: 'attachment'
-        }]
+        subject,
+        text: plainTextContent,
+        html: htmlContent
       });
-
+      
       if (emailSent) {
-        res.json({ success: true, message: "Report shared successfully" });
+        res.json({ success: true, message: "Analysis shared successfully" });
       } else {
-        res.status(500).json({ error: "Failed to send email" });
+        res.status(500).json({ message: "Failed to send email" });
       }
-
     } catch (error) {
-      console.error("Email sharing error:", error);
-      res.status(500).json({ error: "Email sharing failed" });
+      console.error('Error sharing analysis:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to share analysis";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
-  const server = createServer(app);
+  // Combine analyses from multiple providers and export
+  app.post("/api/export-combined", async (req, res) => {
+    try {
+      const { analyses, analysisType, format } = req.body;
+      
+      if (!analyses || !analysisType || !format) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+      
+      // TODO: Implement combined document generation
+      res.status(501).json({ message: "Combined export not yet implemented" });
+    } catch (error) {
+      console.error('Error generating combined document:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate combined document";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+  
+  // Generate comprehensive cognitive report
+  app.post("/api/comprehensive-report", async (req, res) => {
+    try {
+      const { text, provider } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+      
+      if (text.length < 100) {
+        return res.status(400).json({ 
+          message: "Text is too short. Please provide at least 100 characters for analysis."
+        });
+      }
+      
+      // Generate the comprehensive report
+      const report = await generateComprehensiveReport(text, provider as ModelProvider);
+      
+      res.json(report);
+    } catch (error) {
+      console.error('Error generating comprehensive report:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate comprehensive report";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+  
+  // Generate comprehensive psychological report
+  app.post("/api/comprehensive-psychological-report", async (req, res) => {
+    try {
+      const { text, provider } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+      
+      if (text.length < 100) {
+        return res.status(400).json({ 
+          message: "Text is too short. Please provide at least 100 characters for analysis."
+        });
+      }
+      
+      // Generate the comprehensive psychological report
+      const report = await generateComprehensivePsychologicalReport(text, provider as ModelProvider);
+      
+      res.json(report);
+    } catch (error) {
+      console.error('Error generating comprehensive psychological report:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate comprehensive psychological report";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  /**
+   * Helper to get a friendly provider name
+   */
+  function getProviderName(provider: ModelProvider): string {
+    switch (provider) {
+      case 'openai':
+        return 'OpenAI';
+      case 'anthropic':
+        return 'Claude';
+      case 'perplexity':
+        return 'Perplexity';
+      default:
+        return provider;
+    }
   }
 
-  return server;
-}
+  const httpServer = createServer(app);
 
-/**
- * Helper to get a friendly provider name
- */
-function getProviderName(provider: string): string {
-  const names: Record<string, string> = {
-    'openai': 'OpenAI GPT-4',
-    'anthropic': 'Anthropic Claude',
-    'perplexity': 'Perplexity AI',
-    'deepseek': 'DeepSeek'
-  };
-  return names[provider] || provider;
+  return httpServer;
 }

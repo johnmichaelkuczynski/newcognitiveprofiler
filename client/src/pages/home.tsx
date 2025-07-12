@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import IntroSection from "@/components/IntroSection";
 import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
@@ -7,38 +6,17 @@ import ResultsSection from "@/components/ResultsSection";
 import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
-import AuthModal from "@/components/AuthModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
 import { AnalysisType } from "@/types/analysis";
-import { AlertCircle, BrainCircuit, Heart, User, CreditCard } from "lucide-react";
+import { AlertCircle, BrainCircuit, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface User {
-  id: string;
-  email: string;
-  token_balance: number;
-}
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
   const [textSample, setTextSample] = useState("");
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
-
-  // Get current user
-  const { data: userData } = useQuery<{ user: User } | null>({
-    queryKey: ["/api/me"],
-    queryFn: async () => {
-      const res = await fetch("/api/me", { credentials: "include" });
-      if (res.status === 401) return null;
-      return res.json();
-    },
-    retry: false,
-  });
   
   // Cognitive analysis hook
   const {
@@ -142,20 +120,6 @@ export default function Home() {
           </div>
           
           <div className="flex items-center space-x-4">
-            {userData?.user && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <CreditCard className="h-4 w-4" />
-                {userData.user.token_balance?.toLocaleString() || 0} tokens
-              </div>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => setShowAuth(true)}
-              className="flex items-center gap-2"
-            >
-              <User className="h-4 w-4" />
-              {userData?.user ? `${userData.user.username}` : "Sign In"}
-            </Button>
             <button 
               onClick={() => setShowHelp(true)}
               className="text-neutral-600 hover:text-primary p-2 rounded-full transition"
@@ -167,21 +131,6 @@ export default function Home() {
       </header>
 
       <main className="flex-grow container mx-auto px-4 py-6 sm:py-8 md:py-12">
-        {/* Freemium notice for unregistered users */}
-        {!userData?.user && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-blue-700">
-                <AlertCircle className="h-5 w-5" />
-                <span className="font-medium">Free Preview Mode</span>
-              </div>
-              <p className="text-sm text-blue-600 mt-1">
-                Register for unlimited analysis, document uploads, and full reports. Preview shows limited results.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
         {!isLoading && !hasResult && !isError && (
           <>
             <IntroSection 
@@ -237,11 +186,6 @@ export default function Home() {
           onClose={() => setShowHelp(false)} 
         />
       )}
-
-      <AuthModal
-        isOpen={showAuth}
-        onClose={() => setShowAuth(false)}
-      />
     </div>
   );
 }
