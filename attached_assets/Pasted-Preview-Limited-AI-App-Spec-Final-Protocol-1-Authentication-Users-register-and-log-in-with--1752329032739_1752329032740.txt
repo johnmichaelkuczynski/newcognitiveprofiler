@@ -1,0 +1,170 @@
+Preview-Limited AI App Spec (Final Protocol)
+1. 🔐 Authentication
+Users register and log in with:
+
+Username
+
+Password
+
+Do not require or store email.
+
+No email verification or confirmation flow of any kind.
+
+Use session-based authentication (cookie-based).
+
+On successful login:
+
+js
+Copy
+Edit
+session.userId = db_user_id
+Password visibility toggle (eye icon) is allowed on login and registration forms.
+
+2. 💳 Stripe Credit System
+Use Stripe Checkout and Stripe Webhooks to handle payments.
+
+Pricing tiers:
+
+$1 → 1,000 tokens
+
+$10 → 20,000 tokens
+
+$100 → 500,000 tokens
+
+$1,000 → 10,000,000 tokens
+
+On successful payment (checkout.session.completed webhook):
+
+Use metadata to look up the user
+
+Update token_balance in Neon DB users table
+
+3. 🧠 Database Schema (Neon)
+sql
+Copy
+Edit
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  token_balance INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  content TEXT NOT NULL,
+  word_count INTEGER,
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+4. ⚠️ Preview Mode for Unregistered Users
+Allow document uploads
+
+Run real AI logic (no dummy preview)
+
+Return a truncated output (~200 words)
+
+Do not save or store the document
+
+Append:
+
+pgsql
+Copy
+Edit
+“This is a real preview. Register to unlock full access.”
+5. 🔢 Token Deduction Rules
+Registered users:
+
+Deduct: ceil(input_tokens + output_tokens)
+
+If not enough tokens: block action and show:
+
+pgsql
+Copy
+Edit
+“You’ve used all your credits. Buy more to continue.”
+Unregistered users:
+
+No token deduction
+
+Allow processing
+
+Return truncated output only
+
+6. 📄 Document Upload Rules
+Accept PDF, DOCX, and TXT files
+
+Token cost for uploads:
+
+1 token per 100 words
+
+Min: 100 tokens
+
+Max: 10,000 tokens
+
+Unregistered users:
+
+Process document
+
+Return truncated output
+
+Do not save to database
+
+Registered users:
+
+Store document in DB
+
+Deduct tokens based on word count
+
+7. 💾 Optional Storage Charges
+Optional: charge 1 token per 250 words stored per month
+
+Deduct monthly
+
+If insufficient balance:
+
+Lock file
+
+Prompt user to buy more credits
+
+8. 🧭 Session Tracking
+Do not use IP tracking for any reason
+
+Use:
+
+session.userId for logged-in users
+
+session.sessionId for guests
+
+9. 🧮 Token Logging (Optional)
+Track each token usage event:
+
+Timestamp
+
+Session ID or user ID
+
+Tokens used
+
+Remaining balance
+
+10. 🖥️ UI Prompts
+Scenario	Message
+Guest sees preview	“This is a real preview. Register to unlock full access.”
+Guest tries to save file	“Uploading for long-term storage requires registration.”
+User runs out of tokens	“You’ve used all your credits. Buy more to continue.”
+
+✅ Mandatory Test Cases
+ Guest uploads document → truncated output → no storage
+
+ Registered user uploads document → tokens deducted → file saved
+
+ Registered user purchases credits → token balance updated via Stripe webhook
+
+ Session persists after refresh → user remains logged in
+
+ User sees/manages only their own documents
+
+ Deleting a file affects only the user who owns it
+
