@@ -7,6 +7,16 @@ import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
 import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
+import { registerAuthRoutes } from "./authRoutes";
+import { 
+  AuthRequest, 
+  authenticateToken, 
+  requireAuth, 
+  deductTokens, 
+  calculateTokenUsage, 
+  calculateUploadTokens, 
+  truncatePreview 
+} from "./auth";
 import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
@@ -19,6 +29,9 @@ const analyzeRequestSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register authentication routes
+  registerAuthRoutes(app);
+  
   // Configure multer for file uploads
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -27,16 +40,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
-  // Analysis endpoint - using all providers
-  app.post("/api/analyze-all", async (req, res) => {
+  // Analysis endpoint - using all providers with freemium support
+  app.post("/api/analyze-all", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Call all AI APIs and get combined results
+      // Check if user is authenticated
+      const isAuthenticated = !!req.user;
+      
+      if (!isAuthenticated) {
+        // UNREGISTERED USER - PREVIEW ONLY
+        // Generate real AI analysis but truncate results
+        const analyses = await analyzeTextWithAllProviders(text, analysisType);
+        
+        // Truncate each analysis result for preview
+        const previewAnalyses: any = {};
+        Object.entries(analyses).forEach(([provider, analysis]) => {
+          if (typeof analysis === 'object' && analysis !== null) {
+            previewAnalyses[provider] = {
+              ...analysis,
+              detailedAnalysis: truncatePreview(analysis.detailedAnalysis, 50) + 
+                "\n\n✨ This is a preview of your real result.\n🔒 Unlock full results by registering and purchasing credits.\n[Register & Unlock Full Access]",
+              isPreview: true
+            };
+          }
+        });
+        
+        return res.json(previewAnalyses);
+      }
+      
+      // REGISTERED USER - CHECK TOKEN BALANCE
+      const user = req.user!;
+      
+      // Calculate estimated token usage (rough estimate before actual analysis)
+      const estimatedTokens = Math.ceil(text.length / 4) * 6; // Rough estimate for all providers
+      
+      if (user.token_balance < estimatedTokens) {
+        return res.status(402).json({
+          error: "🔒 You've used all your credits. [Buy More Credits]",
+          tokensNeeded: estimatedTokens,
+          currentBalance: user.token_balance
+        });
+      }
+      
+      // Generate full analysis
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return all analysis results
+      // Calculate actual token usage and deduct
+      let totalTokensUsed = 0;
+      Object.entries(analyses).forEach(([provider, analysis]) => {
+        if (typeof analysis === 'object' && analysis !== null) {
+          const tokensUsed = calculateTokenUsage(text, analysis.detailedAnalysis);
+          totalTokensUsed += tokensUsed;
+        }
+      });
+      
+      // Deduct tokens
+      const deductSuccess = await deductTokens(user.id, totalTokensUsed);
+      if (!deductSuccess) {
+        return res.status(402).json({
+          error: "🔒 You've used all your credits. [Buy More Credits]",
+          tokensNeeded: totalTokensUsed,
+          currentBalance: user.token_balance
+        });
+      }
+      
+      // Log the analysis request
+      await storage.createAnalysisRequest({
+        user_id: user.id,
+        text,
+        tokens_used: totalTokensUsed
+      });
+      
+      // Return full analysis results
       res.json(analyses);
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
@@ -81,9 +158,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File upload endpoint for document analysis with all providers
-  app.post("/api/upload-document-all", upload.single('file'), async (req, res) => {
+  // File upload endpoint for document analysis with all providers - FREEMIUM RESTRICTED
+  app.post("/api/upload-document-all", authenticateToken, upload.single('file'), async (req: AuthRequest, res: Response) => {
     try {
+      // Check if user is authenticated - block uploads for unregistered users
+      if (!req.user) {
+        return res.status(401).json({ 
+          error: "🔒 Uploads require registration. [Register & Unlock Access]" 
+        });
+      }
+      
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
@@ -101,8 +185,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Calculate word count and upload tokens
+      const wordCount = extractedText.split(/\s+/).length;
+      const uploadTokens = calculateUploadTokens(wordCount);
+      
+      // Check if user has enough tokens for upload
+      if (req.user.token_balance < uploadTokens) {
+        return res.status(402).json({
+          error: "🔒 You don't have enough credits to upload this document. [Buy More Credits]",
+          tokensNeeded: uploadTokens,
+          currentBalance: req.user.token_balance
+        });
+      }
+      
+      // Deduct upload tokens
+      const deductSuccess = await deductTokens(req.user.id, uploadTokens);
+      if (!deductSuccess) {
+        return res.status(402).json({
+          error: "🔒 You've used all your credits. [Buy More Credits]",
+          tokensNeeded: uploadTokens,
+          currentBalance: req.user.token_balance
+        });
+      }
+      
+      // Store the document
+      await storage.createDocument({
+        user_id: req.user.id,
+        filename: req.file.originalname,
+        content: extractedText,
+        word_count: wordCount
+      });
+      
+      // Calculate estimated tokens for analysis
+      const estimatedTokens = Math.ceil(extractedText.length / 4) * 6; // Rough estimate for all providers
+      
+      if (req.user.token_balance - uploadTokens < estimatedTokens) {
+        return res.status(402).json({
+          error: "🔒 You don't have enough credits to analyze this document. [Buy More Credits]",
+          tokensNeeded: estimatedTokens,
+          currentBalance: req.user.token_balance - uploadTokens
+        });
+      }
+      
       // Analyze the extracted text using all AI providers
       const analyses = await analyzeTextWithAllProviders(extractedText, analysisType);
+      
+      // Calculate actual token usage and deduct
+      let totalTokensUsed = 0;
+      Object.entries(analyses).forEach(([provider, analysis]) => {
+        if (typeof analysis === 'object' && analysis !== null) {
+          const tokensUsed = calculateTokenUsage(extractedText, analysis.detailedAnalysis);
+          totalTokensUsed += tokensUsed;
+        }
+      });
+      
+      // Deduct analysis tokens
+      await deductTokens(req.user.id, totalTokensUsed);
+      
+      // Log the analysis request
+      await storage.createAnalysisRequest({
+        user_id: req.user.id,
+        text: extractedText,
+        tokens_used: totalTokensUsed + uploadTokens
+      });
       
       // Return all analysis results
       res.json(analyses);

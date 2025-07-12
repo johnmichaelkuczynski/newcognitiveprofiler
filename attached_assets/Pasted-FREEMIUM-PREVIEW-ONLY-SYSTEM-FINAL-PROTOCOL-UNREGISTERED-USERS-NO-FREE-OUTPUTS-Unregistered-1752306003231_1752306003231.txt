@@ -1,0 +1,146 @@
+FREEMIUM PREVIEW-ONLY SYSTEM (FINAL PROTOCOL)
+👤 UNREGISTERED USERS (NO FREE OUTPUTS)
+Unregistered users are never given full results, regardless of input length.
+
+✅ They receive a preview only — short, local, fake, or partial content
+
+✅ Previews incur zero API/token cost
+
+✅ Every preview ends with an upgrade prompt
+
+Standard Preview Message:
+
+✨ This is a preview of your result.
+🔒 Unlock full results by registering and purchasing credits.
+[Register & Unlock Full Access]
+
+Example Previews:
+
+Grading App: “Grade: B+ — Promising work…” → [Upgrade to see full feedback]
+
+Comparison App: “Einstein: A+, You: B…” → [Upgrade to view detailed comparison]
+
+Rewrite App: “Opening sentence revised…” → [Upgrade to unlock complete rewrite]
+
+🔑 REGISTERED USERS + CREDIT SYSTEM
+🔐 REGISTRATION
+Email + password (no email verification)
+
+Auth persists across reloads
+
+Logged-in users are never auto-logged out
+
+💳 CREDIT PURCHASE (Stripe Checkout)
+Price	Tokens
+$1	2,000
+$10	30,000
+$100	600,000
+$1,000	10,000,000
+
+Token balance updates immediately post-payment
+
+Stored in Neon database, keyed to user_id
+
+🧾 TOKEN DEDUCTION RULES
+All AI calls deduct tokens based on combined input + output
+
+Display running balance in UI (optional)
+
+If balance = 0 → Block use and show:
+
+🔒 You’ve used all your credits. [Buy More Credits]
+
+📄 DOCUMENT UPLOADS + PRICING
+📤 UPLOAD RULES
+Only registered users may upload files (PDF, DOCX, TXT)
+
+Attempted upload by unregistered user shows:
+
+🔒 File upload requires registration. [Register & Unlock Access]
+
+💰 ONE-TIME UPLOAD COST
+1 token per 100 words (rounded up)
+
+Minimum charge: 100 tokens
+
+Maximum charge: 10,000 tokens
+
+Deducted silently at time of upload
+
+🗄️ OPTIONAL STORAGE COST (IF RETAINED)
+1 token per 250 words per month
+
+Auto-deduct from token balance monthly
+
+If insufficient balance → lock access:
+
+🔒 File storage paused until credits are added. [Buy More Credits]
+
+🧠 NEON DATABASE SETUP (SINGLE SHARED DB)
+📦 DATABASE STRUCTURE
+sql
+Copy
+Edit
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  token_balance INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  content TEXT NOT NULL,
+  word_count INTEGER,
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+🔒 SECURITY RULES
+One Neon DB for all users
+
+Every query scoped by user_id
+
+No multi-tenant schema
+
+No raw SELECT * without filtering
+
+All backend routes extract user_id from session
+
+Example Query:
+ts
+Copy
+Edit
+await db.select().from(documents).where(eq(documents.user_id, currentUserId));
+🔁 SESSION-BASED TRACKING (NO IP-BASED LIMITS)
+Session ID or user_id used for tracking
+
+Never use IP address (due to proxy rotation)
+
+Session and auth persist across page reloads
+
+🧾 TOKEN LOGGING
+All token activity must log:
+
+Timestamp
+
+Session or user ID
+
+Tokens used
+
+Balance remaining
+
+✅ REQUIRED TEST CASES (DO NOT MARK COMPLETE UNTIL ALL PASS)
+❌ Unregistered user submits prompt → receives only preview + upgrade message
+
+✅ Registered user uploads file → correct tokens deducted
+
+✅ Registered user buys credits → balance updated
+
+✅ Page refresh → session and login persist
+
+✅ User A uploads doc → User B cannot access
+
+✅ User A deletes doc → Only their files are affected
+
