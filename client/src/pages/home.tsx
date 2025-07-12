@@ -154,7 +154,7 @@ export default function Home() {
               className="flex items-center gap-2"
             >
               <User className="h-4 w-4" />
-              {userData?.user ? `${userData.user.email}` : "Sign In"}
+              {userData?.user ? `${userData.user.username}` : "Sign In"}
             </Button>
             <button 
               onClick={() => setShowHelp(true)}

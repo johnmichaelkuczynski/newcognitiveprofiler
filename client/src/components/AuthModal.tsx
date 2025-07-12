@@ -12,7 +12,7 @@ import { Loader2, CreditCard, User, LogOut } from "lucide-react";
 
 interface User {
   id: string;
-  email: string;
+  username: string;
   token_balance: number;
 }
 
@@ -29,7 +29,7 @@ interface TokenPackage {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
 
@@ -52,7 +52,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string }) => {
+    mutationFn: async (data: { username: string; password: string }) => {
       const res = await apiRequest("POST", "/api/login", data);
       return res.json();
     },
@@ -72,7 +72,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string }) => {
+    mutationFn: async (data: { username: string; password: string }) => {
       const res = await apiRequest("POST", "/api/register", data);
       return res.json();
     },
@@ -123,12 +123,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleSubmit = (e: React.FormEvent, isLogin: boolean) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!username || !password) return;
 
     if (isLogin) {
-      loginMutation.mutate({ email, password });
+      loginMutation.mutate({ username, password });
     } else {
-      registerMutation.mutate({ email, password });
+      registerMutation.mutate({ username, password });
     }
   };
 
@@ -158,7 +158,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p><strong>Email:</strong> {userData.user.email}</p>
+                  <p><strong>Username:</strong> {userData.user.username}</p>
                   <p><strong>Token Balance:</strong> {userData.user.token_balance?.toLocaleString() || 0} tokens</p>
                 </div>
               </CardContent>
@@ -238,12 +238,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <TabsContent value="login">
             <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </div>
@@ -273,12 +273,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <TabsContent value="register">
             <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reg-email">Email</Label>
+                <Label htmlFor="reg-username">Username</Label>
                 <Input
-                  id="reg-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="reg-username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </div>

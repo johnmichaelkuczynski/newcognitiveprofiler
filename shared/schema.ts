@@ -4,14 +4,14 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
+  username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   token_balance: integer("token_balance").default(0),
   created_at: timestamp("created_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  email: true,
+  username: true,
   password_hash: true,
 });
 
