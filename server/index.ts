@@ -37,25 +37,58 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
-  });
+      res.status(status).json({ message });
+      // Don't throw the error in production - just log it
+      if (process.env.NODE_ENV === 'production') {
+        log(`Error: ${message}`, "error");
+      } else {
+        console.error(err);
+      }
+    });
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+      log('Received SIGINT, shutting down gracefully...');
+      server.close(() => {
+        log('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGTERM', () => {
+      log('Received SIGTERM, shutting down gracefully...');
+      server.close(() => {
+        log('Server closed');
+        process.exit(0);
+      });
+    });
+
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    } else {
+      // In production, try to keep the process alive
+      log("Server startup failed, but keeping process alive for debugging", "error");
+    }
+  }
 })();
