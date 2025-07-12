@@ -1,9 +1,13 @@
 import Stripe from 'stripe';
 import { addTokens } from './auth';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-06-20',
-});
+// Initialize Stripe only if the API key is available
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-06-20',
+  });
+}
 
 export interface PricingTier {
   price: number;
@@ -24,6 +28,10 @@ export async function createCheckoutSession(
   tokens: number,
   priceInCents: number
 ): Promise<string> {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -58,6 +66,10 @@ export async function createCheckoutSession(
 }
 
 export async function handleWebhook(payload: string, signature: string): Promise<void> {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
   if (!endpointSecret) {
