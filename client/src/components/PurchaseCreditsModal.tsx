@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { CreditCard, Check, AlertCircle, Zap } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
@@ -44,7 +44,7 @@ function PaymentForm({
     onProcessing(true);
 
     try {
-      // Create payment intent
+      // Create fresh payment intent every time
       const response = await apiRequest("POST", "/api/create-payment-intent", { tier: selectedTier });
       const { clientSecret } = await response.json();
 
@@ -55,19 +55,22 @@ function PaymentForm({
         return;
       }
 
-      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardElement,
-        },
+          billing_details: {
+            name: "Customer"
+          }
+        }
       });
 
-      if (error) {
-        onError(error.message || "Payment failed");
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Payment successful, now manually update the user's credits
+      if (result.error) {
+        onError(result.error.message || "Payment failed");
+      } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+        // Payment successful, now update the user's credits
         try {
           await apiRequest("POST", "/api/process-payment", { 
-            paymentIntentId: paymentIntent.id 
+            paymentIntentId: result.paymentIntent.id 
           });
           onSuccess();
         } catch (processError: any) {
@@ -118,6 +121,7 @@ export default function PurchaseCreditsModal({ isOpen, onClose }: PurchaseCredit
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const queryClient = useQueryClient();
 
   // Query to get pricing tiers
   const { data: pricingTiers } = useQuery({
@@ -134,7 +138,8 @@ export default function PurchaseCreditsModal({ isOpen, onClose }: PurchaseCredit
   const handlePaymentSuccess = () => {
     setShowPaymentForm(false);
     onClose();
-    window.location.reload(); // Refresh to update user credits
+    // Refresh user data to update credits
+    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
   };
 
   const handlePaymentError = (errorMessage: string) => {
