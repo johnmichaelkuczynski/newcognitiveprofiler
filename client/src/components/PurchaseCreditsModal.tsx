@@ -8,18 +8,106 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { CreditCard, Check, AlertCircle, Zap } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 interface PurchaseCreditsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "");
+
+// Payment form component using Stripe Elements
+function PaymentForm({ 
+  selectedTier, 
+  onSuccess, 
+  onError, 
+  onProcessing 
+}: {
+  selectedTier: string;
+  onSuccess: () => void;
+  onError: (error: string) => void;
+  onProcessing: (processing: boolean) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    onProcessing(true);
+
+    try {
+      // Create payment intent
+      const response = await apiRequest("POST", "/api/create-payment-intent", { tier: selectedTier });
+      const { clientSecret } = await response.json();
+
+      // Confirm payment with card element
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        onError("Card element not found");
+        return;
+      }
+
+      const { error } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+        },
+      });
+
+      if (error) {
+        onError(error.message || "Payment failed");
+      } else {
+        onSuccess();
+      }
+    } catch (error: any) {
+      onError(error.message || "Payment failed");
+    } finally {
+      setIsProcessing(false);
+      onProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="p-4 border rounded-lg">
+        <label className="block text-sm font-medium mb-2">Card Details</label>
+        <CardElement 
+          options={{
+            style: {
+              base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                  color: '#aab7c4',
+                },
+              },
+            },
+          }}
+        />
+      </div>
+      <Button 
+        type="submit" 
+        disabled={!stripe || isProcessing}
+        className="w-full"
+      >
+        {isProcessing ? "Processing..." : "Complete Payment"}
+      </Button>
+    </form>
+  );
+}
 
 export default function PurchaseCreditsModal({ isOpen, onClose }: PurchaseCreditsModalProps) {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   // Query to get pricing tiers
   const { data: pricingTiers } = useQuery({
@@ -27,58 +115,27 @@ export default function PurchaseCreditsModal({ isOpen, onClose }: PurchaseCredit
     enabled: isOpen
   });
 
-  // Mutation to create payment intent
-  const createPaymentMutation = useMutation({
-    mutationFn: async (tier: string) => {
-      const response = await apiRequest("POST", "/api/create-payment-intent", { tier });
-      return response.json();
-    },
-    onSuccess: async (data) => {
-      const stripe = await stripePromise;
-      if (!stripe) {
-        setError("Stripe failed to load");
-        return;
-      }
-
-      const { error } = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: {
-          card: {
-            // This would be replaced with actual card input elements
-            number: "4242424242424242",
-            exp_month: 12,
-            exp_year: 2030,
-            cvc: "123",
-          },
-        },
-      });
-
-      if (error) {
-        setError(error.message || "Payment failed");
-      } else {
-        // Payment successful, close modal
-        onClose();
-        // Refresh user data
-        window.location.reload();
-      }
-    },
-    onError: (error: any) => {
-      setError(error.message || "Failed to create payment");
-    },
-    onSettled: () => {
-      setIsProcessing(false);
-    }
-  });
-
-  const handlePurchase = async (tier: string) => {
-    setError(null);
-    setIsProcessing(true);
+  const handlePurchase = (tier: string) => {
     setSelectedTier(tier);
-    
-    try {
-      await createPaymentMutation.mutateAsync(tier);
-    } catch (error) {
-      // Error handled by mutation
-    }
+    setError(null);
+    setShowPaymentForm(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentForm(false);
+    onClose();
+    window.location.reload(); // Refresh to update user credits
+  };
+
+  const handlePaymentError = (errorMessage: string) => {
+    setError(errorMessage);
+    setShowPaymentForm(false);
+  };
+
+  const handleBack = () => {
+    setShowPaymentForm(false);
+    setSelectedTier(null);
+    setError(null);
   };
 
   const getTierColor = (tier: string) => {
@@ -100,6 +157,52 @@ export default function PurchaseCreditsModal({ isOpen, onClose }: PurchaseCredit
       default: return <CreditCard className="h-5 w-5" />;
     }
   };
+
+  if (showPaymentForm && selectedTier) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Complete Payment</DialogTitle>
+          </DialogHeader>
+          
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="py-4">
+            <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+              <h3 className="font-semibold">{pricingTiers?.[selectedTier]?.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {pricingTiers?.[selectedTier]?.credits.toLocaleString()} credits for ${pricingTiers?.[selectedTier]?.price}
+              </p>
+            </div>
+
+            <Elements stripe={stripePromise}>
+              <PaymentForm
+                selectedTier={selectedTier}
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+                onProcessing={setIsProcessing}
+              />
+            </Elements>
+
+            <Button 
+              variant="outline" 
+              onClick={handleBack}
+              className="w-full mt-4"
+              disabled={isProcessing}
+            >
+              Back to Plans
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
