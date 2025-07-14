@@ -10,7 +10,6 @@ export type MultiProviderPsychologicalResult = Record<ModelProvider, Psychologic
 
 export function usePsychologicalAnalysis() {
   const [data, setData] = useState<MultiProviderPsychologicalResult | null>(null);
-  const [previewData, setPreviewData] = useState<any>(null);
 
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
@@ -23,14 +22,7 @@ export function usePsychologicalAnalysis() {
       return { ...result, originalText: text };
     },
     onSuccess: (result) => {
-      // Check if this is a preview response (user without credits)
-      if (result.isPreview) {
-        setPreviewData(result);
-        setData(null);
-      } else {
-        setData(result);
-        setPreviewData(null);
-      }
+      setData(result);
     },
   });
 
@@ -38,10 +30,10 @@ export function usePsychologicalAnalysis() {
   const fileMutation = useMutation({
     mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("document", file);
       formData.append("analysisType", "psychological");
 
-      const response = await fetch("/api/upload-document-all", {
+      const response = await fetch("/api/analyze-document", {
         method: "POST",
         body: formData,
       });
@@ -55,43 +47,23 @@ export function usePsychologicalAnalysis() {
       return result as MultiProviderPsychologicalResult;
     },
     onSuccess: (result) => {
-      // Check if this is a preview response (user without credits)
-      if (result.isPreview) {
-        setPreviewData(result);
-        setData(null);
-      } else {
-        setData(result);
-        setPreviewData(null);
-      }
+      setData(result);
     },
   });
 
-  // Function to analyze a text sample
-  const analyzeText = (text: string) => {
-    textMutation.mutate({ text });
-  };
-
-  // Function to analyze a file
-  const analyzeFile = (file: File) => {
-    fileMutation.mutate({ file });
-  };
-
-  // Function to reset the state
   const reset = () => {
     setData(null);
-    setPreviewData(null);
     textMutation.reset();
     fileMutation.reset();
   };
 
   return {
-    analyzeText,
-    analyzeFile,
+    analyzeText: ({ text }: { text: string }) => textMutation.mutate({ text }),
+    analyzeFile: ({ file }: { file: File }) => fileMutation.mutate({ file }),
+    data,
     isLoading: textMutation.isPending || fileMutation.isPending,
     isError: textMutation.isError || fileMutation.isError,
     error: textMutation.error || fileMutation.error,
-    data,
-    previewData,
     reset,
   };
 }

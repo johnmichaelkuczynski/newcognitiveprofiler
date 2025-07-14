@@ -5,14 +5,11 @@ import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
 import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
-import PreviewResults from "@/components/PreviewResults";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
-import { usePreviewAnalysis } from "@/hooks/usePreviewAnalysis";
-import { useUser } from "@/contexts/UserContext";
 import { AnalysisType } from "@/types/analysis";
 import { AlertCircle, BrainCircuit, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,8 +18,6 @@ export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [textSample, setTextSample] = useState("");
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
-  const [previewResult, setPreviewResult] = useState<any>(null);
-  const { user } = useUser();
   
   // Cognitive analysis hook
   const {
@@ -32,7 +27,6 @@ export default function Home() {
     isError: isCognitiveError,
     error: cognitiveError,
     data: cognitiveResult,
-    previewData: cognitivePreviewData,
     reset: resetCognitive
   } = useCognitiveAnalysis();
   
@@ -44,20 +38,10 @@ export default function Home() {
     isError: isPsychologicalError,
     error: psychologicalError,
     data: psychologicalResult,
-    previewData: psychologicalPreviewData,
     reset: resetPsychological
   } = usePsychologicalAnalysis();
   
-  // Preview analysis hook (for unregistered users)
-  const {
-    analyzeText: analyzePreviewText,
-    analyzeFile: analyzePreviewFile,
-    isLoading: isPreviewLoading,
-    isError: isPreviewError,
-    error: previewError,
-    data: previewAnalysisResult,
-    reset: resetPreview
-  } = usePreviewAnalysis();
+
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextSample(e.target.value);
@@ -72,17 +56,11 @@ export default function Home() {
       return;
     }
     
-    // If user is not registered, use preview analysis
-    if (!user) {
-      analyzePreviewText(textSample, analysisType);
-      return;
-    }
-    
-    // Analyze with the selected analysis type for registered users
+    // Analyze with the selected analysis type
     if (analysisType === "cognitive") {
-      analyzeCognitiveText(textSample);
+      analyzeCognitiveText({ text: textSample });
     } else {
-      analyzePsychologicalText(textSample);
+      analyzePsychologicalText({ text: textSample });
     }
   };
 
@@ -90,7 +68,6 @@ export default function Home() {
     // Reset all analysis types to ensure a clean state
     resetCognitive();
     resetPsychological();
-    resetPreview();
     
     // Clear the text input
     setTextSample("");
@@ -99,12 +76,6 @@ export default function Home() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // If user is not registered, use preview analysis
-    if (!user) {
-      analyzePreviewFile(file, analysisType);
-      return;
-    }
 
     // Check if this is a text file (for simple reading) or a document (for server processing)
     const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -120,9 +91,9 @@ export default function Home() {
     } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
       // For PDF, Word documents - send directly to server for processing
       if (analysisType === "cognitive") {
-        analyzeCognitiveFile(file);
+        analyzeCognitiveFile({ file });
       } else {
-        analyzePsychologicalFile(file);
+        analyzePsychologicalFile({ file });
       }
     } else {
       // For unsupported formats
@@ -131,28 +102,13 @@ export default function Home() {
     }
   };
 
-  // Determine loading, error and result states based on current analysis type and user status
-  const isLoading = user 
-    ? (analysisType === "cognitive" ? isCognitiveLoading : isPsychologicalLoading)
-    : isPreviewLoading;
+  // Determine loading, error and result states based on current analysis type
+  const isLoading = analysisType === "cognitive" ? isCognitiveLoading : isPsychologicalLoading;
+  const isError = analysisType === "cognitive" ? isCognitiveError : isPsychologicalError;
+  const error = analysisType === "cognitive" ? cognitiveError : psychologicalError;
   
-  const isError = user 
-    ? (analysisType === "cognitive" ? isCognitiveError : isPsychologicalError)
-    : isPreviewError;
-  
-  const error = user 
-    ? (analysisType === "cognitive" ? cognitiveError : psychologicalError)
-    : previewError;
-  
-  // Check for results (full analysis or preview data)
-  const hasResult = user 
-    ? (analysisType === "cognitive" ? (!!cognitiveResult || !!cognitivePreviewData) : (!!psychologicalResult || !!psychologicalPreviewData))
-    : !!previewAnalysisResult;
-  
-  // Get the current preview data based on analysis type
-  const currentPreviewData = user 
-    ? (analysisType === "cognitive" ? cognitivePreviewData : psychologicalPreviewData)
-    : previewAnalysisResult;
+  // Check for results
+  const hasResult = analysisType === "cognitive" ? !!cognitiveResult : !!psychologicalResult;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -182,28 +138,15 @@ export default function Home() {
         
         {!isLoading && !isError && (
           <>
-            {/* Show preview results for unregistered users OR registered users without credits */}
-            {currentPreviewData && (
-              <PreviewResults 
-                preview={currentPreviewData.preview}
-                analysisType={currentPreviewData.analysisType}
-                registrationMessage={currentPreviewData.registrationMessage}
-                costs={currentPreviewData.costs}
-                onNewAnalysis={handleReset}
-                userCredits={currentPreviewData.userCredits}
-                requiredCredits={currentPreviewData.requiredCredits}
-              />
-            )}
-            
-            {/* Show full results for registered users with credits */}
-            {user && cognitiveResult && analysisType === "cognitive" && !cognitivePreviewData && (
+            {/* Show results based on analysis type */}
+            {cognitiveResult && analysisType === "cognitive" && (
               <ResultsSection 
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
               />
             )}
             
-            {user && psychologicalResult && analysisType === "psychological" && !psychologicalPreviewData && (
+            {psychologicalResult && analysisType === "psychological" && (
               <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
