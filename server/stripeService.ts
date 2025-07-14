@@ -27,6 +27,7 @@ export async function createPaymentIntent(
   const paymentIntent = await stripe.paymentIntents.create({
     amount: tierInfo.price * 100, // Convert to cents
     currency: "usd",
+    automatic_payment_methods: { enabled: true },
     metadata: {
       userId: userId.toString(),
       tier,
