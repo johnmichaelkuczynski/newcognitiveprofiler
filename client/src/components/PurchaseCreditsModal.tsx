@@ -55,7 +55,7 @@ function PaymentForm({
         return;
       }
 
-      const { error } = await stripe.confirmCardPayment(clientSecret, {
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardElement,
         },
@@ -63,8 +63,18 @@ function PaymentForm({
 
       if (error) {
         onError(error.message || "Payment failed");
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Payment successful, now manually update the user's credits
+        try {
+          await apiRequest("POST", "/api/process-payment", { 
+            paymentIntentId: paymentIntent.id 
+          });
+          onSuccess();
+        } catch (processError: any) {
+          onError("Payment processed but failed to update credits. Please contact support.");
+        }
       } else {
-        onSuccess();
+        onError("Payment status unclear. Please check your account or contact support.");
       }
     } catch (error: any) {
       onError(error.message || "Payment failed");

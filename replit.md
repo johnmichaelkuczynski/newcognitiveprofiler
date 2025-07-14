@@ -15,6 +15,11 @@ Preferred communication style: Simple, everyday language.
 - Updated pricing tiers to exact user specifications: $5→5K, $10→20K, $100→500K, $1000→10M tokens
 - Enhanced PreviewResults component to handle registered users without credits
 - Fixed registration loop by ensuring session creation after successful registration
+- Fixed payment system to work with live Stripe credentials:
+  - Replaced hardcoded test cards with proper Stripe Elements
+  - Added client-side payment confirmation instead of relying on webhooks
+  - Implemented /api/process-payment endpoint for immediate credit updates
+  - Fixed environment variable naming (VITE_STRIPE_PUBLIC_KEY)
 
 ## System Architecture
 
