@@ -8,22 +8,8 @@ export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysi
   originalText?: string; // Add original text to the result
 };
 
-// Type for preview result that might come from registered users without credits
-export type PreviewResult = {
-  preview: string;
-  isPreview: true;
-  provider: ModelProvider;
-  analysisType: string;
-  message: string;
-  registrationMessage: string;
-  costs: any;
-  userCredits?: number;
-  requiredCredits?: number;
-};
-
 export function useCognitiveAnalysis() {
   const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
-  const [previewData, setPreviewData] = useState<PreviewResult | null>(null);
 
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
@@ -33,14 +19,7 @@ export function useCognitiveAnalysis() {
       return { ...result, originalText: text };
     },
     onSuccess: (result) => {
-      // Check if this is a preview response (user without credits)
-      if (result.isPreview) {
-        setPreviewData(result);
-        setData(null);
-      } else {
-        setData(result);
-        setPreviewData(null);
-      }
+      setData(result);
     },
   });
 
@@ -48,10 +27,10 @@ export function useCognitiveAnalysis() {
   const fileMutation = useMutation({
     mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('document', file);
       formData.append('analysisType', 'cognitive');
       
-      const response = await fetch('/api/upload-document-all', {
+      const response = await fetch('/api/analyze-document', {
         method: 'POST',
         body: formData,
       });
@@ -65,42 +44,23 @@ export function useCognitiveAnalysis() {
       return result as MultiProviderAnalysisResult;
     },
     onSuccess: (result) => {
-      // Check if this is a preview response (user without credits)
-      if (result.isPreview) {
-        setPreviewData(result);
-        setData(null);
-      } else {
-        setData(result);
-        setPreviewData(null);
-      }
+      setData(result);
     },
   });
 
-  // Analyze text with all providers
-  const analyzeText = (text: string) => {
-    textMutation.mutate({ text });
-  };
-
-  // Analyze file with all providers
-  const analyzeFile = (file: File) => {
-    fileMutation.mutate({ file });
-  };
-
   const reset = () => {
     setData(null);
-    setPreviewData(null);
     textMutation.reset();
     fileMutation.reset();
   };
 
   return {
-    analyzeText,
-    analyzeFile,
+    analyzeText: ({ text }: { text: string }) => textMutation.mutate({ text }),
+    analyzeFile: ({ file }: { file: File }) => fileMutation.mutate({ file }),
+    data,
     isLoading: textMutation.isPending || fileMutation.isPending,
     isError: textMutation.isError || fileMutation.isError,
     error: textMutation.error || fileMutation.error,
-    data,
-    previewData,
     reset,
   };
 }
