@@ -152,6 +152,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/process-payment", requireAuth, async (req, res) => {
+    try {
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment intent ID is required" });
+      }
+      
+      await handleSuccessfulPayment(paymentIntentId);
+      
+      res.json({ message: "Credits added successfully" });
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      res.status(500).json({ message: "Failed to process payment" });
+    }
+  });
+
   app.post("/api/stripe-webhook", express.raw({ type: "application/json" }), async (req, res) => {
     const signature = req.headers["stripe-signature"] as string;
     
