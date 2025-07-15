@@ -144,10 +144,12 @@ ${index + 1}. ${param.name}: ${param.description}
 
 INSTRUCTIONS:
 - Analyze each parameter independently and thoroughly
-- Provide specific evidence from the text for each assessment
+- Provide detailed analysis with DIRECT QUOTATIONS from the text as evidence
 - Use psychological and cognitive science terminology appropriately
-- Each analysis should be 2-3 sentences that directly address the parameter
+- Each analysis should be at least 3-4 sentences with specific quotes and evidence
+- Include actual quotes in quotation marks to support your analysis
 - Be specific about what the text reveals about each cognitive dimension
+- ALWAYS provide analysis regardless of text length - never say "not enough information"
 - Avoid generic responses - each analysis should be unique to the parameter
 
 RESPOND IN JSON FORMAT:
@@ -212,7 +214,7 @@ async function callOpenAI(prompt: string): Promise<string> {
   });
   
   const response = await openai.chat.completions.create({
-    model: "gpt-4",
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
@@ -224,7 +226,7 @@ async function callOpenAI(prompt: string): Promise<string> {
       }
     ],
     temperature: 0.3,
-    max_tokens: 2000
+    max_tokens: 4000
   });
   
   return response.choices[0].message.content || "";

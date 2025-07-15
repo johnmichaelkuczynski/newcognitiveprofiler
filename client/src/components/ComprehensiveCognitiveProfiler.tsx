@@ -4,10 +4,44 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText, Brain, RotateCcw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Upload, FileText, Brain, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { useComprehensiveCognitiveAnalysis } from "@/hooks/useComprehensiveCognitiveAnalysis";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+
+interface CognitiveParameterCardProps {
+  param: { name: string; description: string };
+  analysis: string;
+}
+
+function CognitiveParameterCard({ param, analysis }: CognitiveParameterCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  return (
+    <Card className="border-l-4 border-l-blue-500">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">{param.name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-gray-600 mb-3">{param.description}</p>
+        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-between p-0 h-auto">
+              <span className="text-sm font-medium">Analysis</span>
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-sm whitespace-pre-wrap">{analysis}</p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ComprehensiveCognitiveProfiler() {
   const [textInput, setTextInput] = useState("");
@@ -95,18 +129,11 @@ export default function ComprehensiveCognitiveProfiler() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {cognitiveParameters.map((param, index) => (
-            <Card key={index} className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{param.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-3">{param.description}</p>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium">Analysis:</p>
-                  <p className="text-sm mt-1">{data[param.name.toLowerCase().replace(/\s+/g, '_')] || "Analysis pending..."}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <CognitiveParameterCard 
+              key={index} 
+              param={param} 
+              analysis={data[param.name.toLowerCase().replace(/\s+/g, '_')] || "Analysis pending..."}
+            />
           ))}
         </div>
       </div>
