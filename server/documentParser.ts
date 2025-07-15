@@ -10,9 +10,7 @@ export async function parseDocument(file: any): Promise<string> {
     
     // Handle different file types
     if (fileExt === '.pdf') {
-      // Reject PDF files with a clear message
-      return "PDF files are not supported. Please convert your document to plain text (.txt) or Word (.docx) format.";
-    
+      return await parsePdf(file.buffer);
     } else if (fileExt === '.docx' || fileExt === '.doc') {
       return await parseWord(file.buffer);
     } else {
@@ -52,6 +50,20 @@ function extractMetadataFromFile(file: any): string {
 }
 
 
+
+/**
+ * Parse PDF documents using pdf-parse
+ */
+async function parsePdf(buffer: Buffer): Promise<string> {
+  try {
+    const pdfParse = await import('pdf-parse');
+    const data = await pdfParse.default(buffer);
+    return data.text;
+  } catch (error: any) {
+    console.error('Error parsing PDF document:', error);
+    throw new Error(`Failed to parse PDF document: ${error.message}`);
+  }
+}
 
 /**
  * Parse Word documents using mammoth
