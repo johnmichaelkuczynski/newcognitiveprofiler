@@ -158,16 +158,16 @@ export default function Home() {
             {!isLoading && !hasResult && !isError && (
               <>
                 <IntroSection 
-                  analysisType="cognitive"
+                  analysisType={analysisType}
                   onAnalysisTypeChange={handleAnalysisTypeChange}
                 />
                 
                 <InputSection 
                   textSample={textSample}
                   onTextChange={handleTextChange} 
-                  onAnalyze={() => handleAnalyze("cognitive")}
+                  onAnalyze={handleAnalyze}
                   onFileUpload={handleFileUpload}
-                  analysisType="cognitive"
+                  analysisType={analysisType}
                 />
               </>
             )}
@@ -176,7 +176,7 @@ export default function Home() {
               <ProcessingIndicator />
             )}
             
-            {!isLoading && !isError && cognitiveResult && (
+            {!isLoading && !isError && cognitiveResult && analysisType === "cognitive" && (
               <ResultsSection 
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
@@ -195,16 +195,16 @@ export default function Home() {
             {!isLoading && !hasResult && !isError && (
               <>
                 <IntroSection 
-                  analysisType="psychological"
+                  analysisType={analysisType}
                   onAnalysisTypeChange={handleAnalysisTypeChange}
                 />
                 
                 <InputSection 
                   textSample={textSample}
                   onTextChange={handleTextChange} 
-                  onAnalyze={() => handleAnalyze("psychological")}
+                  onAnalyze={handleAnalyze}
                   onFileUpload={handleFileUpload}
-                  analysisType="psychological"
+                  analysisType={analysisType}
                 />
               </>
             )}
@@ -213,7 +213,7 @@ export default function Home() {
               <ProcessingIndicator />
             )}
             
-            {!isLoading && !isError && psychologicalResult && (
+            {!isLoading && !isError && psychologicalResult && analysisType === "psychological" && (
               <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
