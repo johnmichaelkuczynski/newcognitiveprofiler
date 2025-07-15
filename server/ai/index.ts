@@ -1,4 +1,4 @@
-import { CognitiveAnalysisResult, PsychologicalAnalysisResult, AnalysisType, ComprehensiveCognitiveResult, ComprehensivePsychologicalResult, MultiProviderComprehensiveCognitiveResult, MultiProviderComprehensivePsychologicalResult } from "@/types/analysis";
+import { CognitiveAnalysisResult, PsychologicalAnalysisResult, AnalysisType } from "@/types/analysis";
 import { analyzeWithDeepSeek } from "./deepseek";
 import { analyzeWithOpenAI } from "./openai";
 import { analyzeWithAnthropic } from "./anthropic";
@@ -7,8 +7,6 @@ import { analyzeWithDeepSeek as analyzePsychologicalWithDeepSeek } from "./psych
 import { analyzeWithOpenAI as analyzePsychologicalWithOpenAI } from "./psychological/openai";
 import { analyzeWithAnthropic as analyzePsychologicalWithAnthropic } from "./psychological/anthropic";
 import { analyzeWithPerplexity as analyzePsychologicalWithPerplexity } from "./psychological/perplexity";
-import { generateComprehensiveCognitiveAnalysis } from "./comprehensiveCognitiveAnalysis";
-import { generateComprehensivePsychologicalAnalysis } from "./comprehensivePsychologicalAnalysis";
 
 // Define the supported model providers
 export type ModelProvider = "deepseek" | "openai" | "anthropic" | "perplexity";
@@ -233,92 +231,5 @@ export async function analyzeTextWithAllProviders(
     return await analyzeCognitiveTextWithAllProviders(text);
   } else {
     return await analyzePsychologicalTextWithAllProviders(text);
-  }
-}
-
-/**
- * Analyzes text using all providers for comprehensive cognitive analysis and returns all results
- */
-export async function analyzeComprehensiveCognitiveTextWithAllProviders(
-  text: string,
-  additionalContext?: string
-): Promise<MultiProviderComprehensiveCognitiveResult> {
-  const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
-  const results: Partial<Record<ModelProvider, ComprehensiveCognitiveResult>> = {};
-  
-  for (const provider of providers) {
-    try {
-      console.log(`Starting comprehensive cognitive analysis with ${provider}...`);
-      const result = await generateComprehensiveCognitiveAnalysis(text, provider, additionalContext);
-      results[provider] = result;
-      console.log(`Completed comprehensive cognitive analysis with ${provider}`);
-    } catch (error) {
-      console.error(`Error in comprehensive cognitive analysis with ${provider}:`, error);
-      // Continue with other providers even if one fails
-    }
-  }
-  
-  if (Object.keys(results).length === 0) {
-    throw new Error("All comprehensive cognitive analysis providers failed");
-  }
-  
-  return {
-    providers: results as Record<ModelProvider, ComprehensiveCognitiveResult>,
-    timestamp: new Date().toISOString(),
-    originalText: text
-  };
-}
-
-/**
- * Analyzes text using all providers for comprehensive psychological analysis and returns all results
- */
-export async function analyzeComprehensivePsychologicalTextWithAllProviders(
-  text: string,
-  additionalContext?: string
-): Promise<MultiProviderComprehensivePsychologicalResult> {
-  const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
-  const results: Partial<Record<ModelProvider, ComprehensivePsychologicalResult>> = {};
-  
-  for (const provider of providers) {
-    try {
-      console.log(`Starting comprehensive psychological analysis with ${provider}...`);
-      const result = await generateComprehensivePsychologicalAnalysis(text, provider, additionalContext);
-      results[provider] = result;
-      console.log(`Completed comprehensive psychological analysis with ${provider}`);
-    } catch (error) {
-      console.error(`Error in comprehensive psychological analysis with ${provider}:`, error);
-      // Continue with other providers even if one fails
-    }
-  }
-  
-  if (Object.keys(results).length === 0) {
-    throw new Error("All comprehensive psychological analysis providers failed");
-  }
-  
-  return {
-    providers: results as Record<ModelProvider, ComprehensivePsychologicalResult>,
-    timestamp: new Date().toISOString(),
-    originalText: text
-  };
-}
-
-/**
- * Single provider comprehensive analysis function
- */
-export async function analyzeComprehensiveText(
-  text: string,
-  provider: ModelProvider = "openai",
-  analysisType: "comprehensive-cognitive" | "comprehensive-psychological",
-  additionalContext?: string
-): Promise<ComprehensiveCognitiveResult | ComprehensivePsychologicalResult> {
-  try {
-    if (analysisType === "comprehensive-cognitive") {
-      return await generateComprehensiveCognitiveAnalysis(text, provider, additionalContext);
-    } else {
-      return await generateComprehensivePsychologicalAnalysis(text, provider, additionalContext);
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    throw new Error(`${analysisType} analysis failed: ${errorMessage}`);
   }
 }
