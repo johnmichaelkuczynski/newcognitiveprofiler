@@ -6,6 +6,8 @@ import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
 import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
+import { generateComprehensiveCognitiveProfile } from "./ai/comprehensiveCognitiveProfiler";
+import { generateComprehensivePsychologicalProfile } from "./ai/comprehensivePsychologicalProfiler";
 import { type AnalysisType } from "../shared/schema";
 import multer from "multer";
 import { z } from "zod";
@@ -203,6 +205,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Email report error:", error);
       res.status(500).json({ message: "Failed to send report" });
+    }
+  });
+
+  // Comprehensive cognitive analysis - 20 parameters
+  app.post("/api/comprehensive-cognitive-analysis", async (req, res) => {
+    try {
+      const { text } = req.body;
+      
+      if (!text || text.length < 100) {
+        return res.status(400).json({ message: "Text must be at least 100 characters long" });
+      }
+      
+      const profile = await generateComprehensiveCognitiveProfile(text, "openai");
+      res.json(profile);
+    } catch (error) {
+      console.error("Comprehensive cognitive analysis error:", error);
+      res.status(500).json({ message: "Failed to generate comprehensive cognitive analysis" });
+    }
+  });
+
+  // Comprehensive psychological analysis - 20 parameters
+  app.post("/api/comprehensive-psychological-analysis", async (req, res) => {
+    try {
+      const { text } = req.body;
+      
+      if (!text || text.length < 100) {
+        return res.status(400).json({ message: "Text must be at least 100 characters long" });
+      }
+      
+      const profile = await generateComprehensivePsychologicalProfile(text, "openai");
+      res.json(profile);
+    } catch (error) {
+      console.error("Comprehensive psychological analysis error:", error);
+      res.status(500).json({ message: "Failed to generate comprehensive psychological analysis" });
+    }
+  });
+
+  // Comprehensive cognitive document analysis
+  app.post("/api/comprehensive-cognitive-document", upload.single("document"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No document uploaded" });
+      }
+
+      const parsedText = await parseDocument(req.file);
+      
+      if (!parsedText || parsedText.length < 100) {
+        return res.status(400).json({ message: "Document must contain at least 100 characters of text" });
+      }
+      
+      const profile = await generateComprehensiveCognitiveProfile(parsedText, "openai");
+      res.json(profile);
+    } catch (error) {
+      console.error("Comprehensive cognitive document analysis error:", error);
+      res.status(500).json({ message: "Failed to analyze document" });
+    }
+  });
+
+  // Comprehensive psychological document analysis
+  app.post("/api/comprehensive-psychological-document", upload.single("document"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No document uploaded" });
+      }
+
+      const parsedText = await parseDocument(req.file);
+      
+      if (!parsedText || parsedText.length < 100) {
+        return res.status(400).json({ message: "Document must contain at least 100 characters of text" });
+      }
+      
+      const profile = await generateComprehensivePsychologicalProfile(parsedText, "openai");
+      res.json(profile);
+    } catch (error) {
+      console.error("Comprehensive psychological document analysis error:", error);
+      res.status(500).json({ message: "Failed to analyze document" });
     }
   });
 
