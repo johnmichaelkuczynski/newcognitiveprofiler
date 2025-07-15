@@ -45,11 +45,7 @@ export default function Home() {
     setTextSample("");
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check if this is a text file (for simple reading) or a document (for server processing)
+  const handleFileUpload = async (file: File) => {
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     
     if (fileExt === 'txt' || fileExt === 'text') {
@@ -60,14 +56,14 @@ export default function Home() {
         setTextSample(text);
       };
       reader.readAsText(file);
-    } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
+    } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx' || fileExt === 'rtf') {
       // For PDF, Word documents - send directly to server for processing
       // Analyze with all providers simultaneously
-      analyzeFile(file);
+      await analyzeFile(file);
     } else {
       // For unsupported formats
       console.error("Unsupported file format");
-      // You could set an error state here and show a message to the user
+      throw new Error("Unsupported file format. Please upload PDF, Word, or text files.");
     }
   };
 
@@ -105,6 +101,7 @@ export default function Home() {
             onTextChange={handleTextChange} 
             onAnalyze={handleAnalyze}
             onFileUpload={handleFileUpload}
+            isUploading={isLoading}
           />
         )}
         
