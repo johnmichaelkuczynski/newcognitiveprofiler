@@ -1,31 +1,39 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import { desc } from "drizzle-orm";
-import { 
-  analysisRequests,
-  type AnalysisRequest,
-  type InsertAnalysisRequest
-} from "../shared/schema";
+import { users, type User, type InsertUser } from "@shared/schema";
 
-const sql_client = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql_client);
+// modify the interface with any CRUD methods
+// you might need
 
-export class Storage {
-  // Analysis request management
-  async createAnalysisRequest(request: InsertAnalysisRequest): Promise<AnalysisRequest> {
-    const [result] = await db
-      .insert(analysisRequests)
-      .values(request)
-      .returning();
-    return result;
+export interface IStorage {
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  currentId: number;
+
+  constructor() {
+    this.users = new Map();
+    this.currentId = 1;
   }
 
-  async getAnalysisRequests(): Promise<AnalysisRequest[]> {
-    return await db
-      .select()
-      .from(analysisRequests)
-      .orderBy(desc(analysisRequests.created_at));
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.currentId++;
+    const user: User = { ...insertUser, id };
+    this.users.set(id, user);
+    return user;
   }
 }
 
-export const storage = new Storage();
+export const storage = new MemStorage();
