@@ -10,8 +10,10 @@ export async function parseDocument(file: any): Promise<string> {
     
     // Handle different file types
     if (fileExt === '.pdf') {
-      // Reject PDF files with a clear message
-      return "PDF files are not supported. Please convert your document to plain text (.txt) or Word (.docx) format.";
+      // Parse PDF files - dynamically import to avoid module loading issues
+      const pdfParse = await import('pdf-parse');
+      const pdfData = await pdfParse.default(file.buffer);
+      return pdfData.text;
     
     } else if (fileExt === '.docx' || fileExt === '.doc') {
       return await parseWord(file.buffer);
