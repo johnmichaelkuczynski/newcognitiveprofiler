@@ -18,6 +18,8 @@ Preferred communication style: Simple, everyday language.
 - **Four-Tab Interface**: Restructured UI with Basic Cognitive, Basic Psychological, Comprehensive Cognitive, and Comprehensive Psychological tabs
 - **Simplified Database**: Reduced schema to only analysis_requests table
 - **New API Endpoints**: Added `/api/comprehensive-cognitive-analysis`, `/api/comprehensive-psychological-analysis`, and document upload endpoints
+- **Drag-and-Drop Upload**: Added comprehensive drag-and-drop functionality for all document upload areas
+- **Anthropic as Default**: Changed default AI provider from OpenAI to Anthropic (Claude) for comprehensive analysis
 
 ## System Architecture
 
