@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 // Removed storage import - no authentication
-import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./ai";
+import { analyzeText, analyzeTextWithAllProviders, analyzeComprehensiveCognitiveTextWithAllProviders, analyzeComprehensivePsychologicalTextWithAllProviders, analyzeComprehensiveText, type ModelProvider } from "./ai";
 import { parseDocument } from "./documentParser";
 import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
@@ -14,8 +14,14 @@ import { fromZodError } from "zod-validation-error";
 
 const analyzeRequestSchema = z.object({
   text: z.string().min(100, "Text must be at least 100 characters long"),
-  modelProvider: z.enum(["openai", "anthropic", "perplexity"]).default("openai"),
-  analysisType: z.enum(["cognitive", "psychological"]).default("cognitive")
+  modelProvider: z.enum(["openai", "anthropic", "perplexity", "deepseek"]).default("openai"),
+  analysisType: z.enum(["cognitive", "psychological", "comprehensive-cognitive", "comprehensive-psychological"]).default("cognitive")
+});
+
+const comprehensiveAnalyzeRequestSchema = z.object({
+  text: z.string().min(100, "Text must be at least 100 characters long"),
+  additionalContext: z.string().optional(),
+  analysisType: z.enum(["comprehensive-cognitive", "comprehensive-psychological"]).default("comprehensive-cognitive")
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -330,6 +336,126 @@ Thank you for using Cognitive Profile App!
     } catch (error) {
       console.error('Error generating comprehensive psychological report:', error);
       const errorMessage = error instanceof Error ? error.message : "Failed to generate comprehensive psychological report";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Comprehensive cognitive analysis endpoint - all providers
+  app.post("/api/analyze-comprehensive-cognitive", async (req, res) => {
+    try {
+      const { text, additionalContext } = comprehensiveAnalyzeRequestSchema.parse(req.body);
+      
+      // Get comprehensive cognitive analysis from all providers
+      const analyses = await analyzeComprehensiveCognitiveTextWithAllProviders(text, additionalContext);
+      
+      res.json(analyses);
+    } catch (error) {
+      console.error('Error in comprehensive cognitive analysis:', error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: fromZodError(error).message 
+        });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text comprehensively";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Comprehensive psychological analysis endpoint - all providers
+  app.post("/api/analyze-comprehensive-psychological", async (req, res) => {
+    try {
+      const { text, additionalContext } = comprehensiveAnalyzeRequestSchema.parse(req.body);
+      
+      // Get comprehensive psychological analysis from all providers
+      const analyses = await analyzeComprehensivePsychologicalTextWithAllProviders(text, additionalContext);
+      
+      res.json(analyses);
+    } catch (error) {
+      console.error('Error in comprehensive psychological analysis:', error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: fromZodError(error).message 
+        });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text comprehensively";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Comprehensive analysis endpoint - single provider
+  app.post("/api/analyze-comprehensive", async (req, res) => {
+    try {
+      const { text, modelProvider, analysisType, additionalContext } = analyzeRequestSchema.extend({
+        additionalContext: z.string().optional()
+      }).parse(req.body);
+      
+      // Validate analysis type is comprehensive
+      if (analysisType !== "comprehensive-cognitive" && analysisType !== "comprehensive-psychological") {
+        return res.status(400).json({ 
+          message: "Analysis type must be 'comprehensive-cognitive' or 'comprehensive-psychological'" 
+        });
+      }
+      
+      // Get comprehensive analysis from single provider
+      const analysis = await analyzeComprehensiveText(text, modelProvider, analysisType, additionalContext);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error in comprehensive analysis:', error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: fromZodError(error).message 
+        });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text comprehensively";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // File upload endpoint for comprehensive analysis
+  app.post("/api/upload-document-comprehensive", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const { analysisType, additionalContext } = req.body;
+      
+      // Validate analysis type
+      if (analysisType !== "comprehensive-cognitive" && analysisType !== "comprehensive-psychological") {
+        return res.status(400).json({ 
+          message: "Analysis type must be 'comprehensive-cognitive' or 'comprehensive-psychological'" 
+        });
+      }
+      
+      // Parse the document to extract text
+      const extractedText = await parseDocument(req.file);
+      
+      // Check the text length
+      if (extractedText.length < 100) {
+        return res.status(400).json({ 
+          message: "The extracted text is too short. Please upload a document with more content (minimum 100 characters)." 
+        });
+      }
+      
+      // Get comprehensive analysis from all providers
+      let analyses;
+      if (analysisType === "comprehensive-cognitive") {
+        analyses = await analyzeComprehensiveCognitiveTextWithAllProviders(extractedText, additionalContext);
+      } else {
+        analyses = await analyzeComprehensivePsychologicalTextWithAllProviders(extractedText, additionalContext);
+      }
+      
+      res.json(analyses);
+    } catch (error) {
+      console.error('Error processing document for comprehensive analysis:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to process document comprehensively";
       res.status(500).json({ message: errorMessage });
     }
   });
