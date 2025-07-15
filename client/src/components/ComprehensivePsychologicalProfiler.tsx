@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, FileText, Heart, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, Heart, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { useComprehensivePsychologicalAnalysis } from "@/hooks/useComprehensivePsychologicalAnalysis";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import DragDropUpload from "./DragDropUpload";
 
 interface PsychologicalParameterCardProps {
   param: { name: string; description: string };
@@ -49,16 +49,10 @@ export default function ComprehensivePsychologicalProfiler() {
   const { analyzeText, analyzeFile, data, isLoading, isError, error, reset } = useComprehensivePsychologicalAnalysis();
 
   const handleTextAnalysis = () => {
-    if (textInput.trim().length < 100) {
-      return;
-    }
     analyzeText({ text: textInput });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleFileSelect = (file: File) => {
     setFileInput(file);
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     
@@ -72,6 +66,11 @@ export default function ComprehensivePsychologicalProfiler() {
     } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
       analyzeFile({ file });
     }
+  };
+
+  const handleFileRemove = () => {
+    setFileInput(null);
+    setTextInput("");
   };
 
   const handleReset = () => {
@@ -166,32 +165,20 @@ export default function ComprehensivePsychologicalProfiler() {
               className="resize-none"
             />
             <p className="text-sm text-gray-500">
-              {textInput.length}/100 characters minimum
+              {textInput.length} characters
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Label htmlFor="file-input">Or Upload Document</Label>
-              <Input
-                id="file-input"
-                type="file"
-                accept=".txt,.doc,.docx,.pdf"
-                onChange={handleFileUpload}
-                className="mt-1"
-              />
-            </div>
-            {fileInput && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FileText className="h-4 w-4" />
-                {fileInput.name}
-              </div>
-            )}
-          </div>
+          <DragDropUpload
+            onFileSelect={handleFileSelect}
+            onFileRemove={handleFileRemove}
+            selectedFile={fileInput}
+            label="Or Upload Document"
+          />
 
           <Button 
             onClick={handleTextAnalysis}
-            disabled={textInput.length < 100 && !fileInput}
+            disabled={!textInput.trim() && !fileInput}
             className="w-full"
           >
             <Upload className="h-4 w-4 mr-2" />

@@ -213,10 +213,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { text } = req.body;
       
-      if (!text || text.length < 100) {
-        return res.status(400).json({ message: "Text must be at least 100 characters long" });
+      if (!text || text.trim().length === 0) {
+        return res.status(400).json({ message: "Text input is required" });
       }
       
+      // Always proceed with analysis, even with short text
       const profile = await generateComprehensiveCognitiveProfile(text, "openai");
       res.json(profile);
     } catch (error) {
@@ -230,10 +231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { text } = req.body;
       
-      if (!text || text.length < 100) {
-        return res.status(400).json({ message: "Text must be at least 100 characters long" });
+      if (!text || text.trim().length === 0) {
+        return res.status(400).json({ message: "Text input is required" });
       }
       
+      // Always proceed with analysis, even with short text
       const profile = await generateComprehensivePsychologicalProfile(text, "openai");
       res.json(profile);
     } catch (error) {
@@ -251,10 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parsedText = await parseDocument(req.file);
       
-      if (!parsedText || parsedText.length < 100) {
-        return res.status(400).json({ message: "Document must contain at least 100 characters of text" });
-      }
-      
+      // Always proceed with analysis, even with short text
       const profile = await generateComprehensiveCognitiveProfile(parsedText, "openai");
       res.json(profile);
     } catch (error) {
@@ -272,10 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parsedText = await parseDocument(req.file);
       
-      if (!parsedText || parsedText.length < 100) {
-        return res.status(400).json({ message: "Document must contain at least 100 characters of text" });
-      }
-      
+      // Always proceed with analysis, even with short text
       const profile = await generateComprehensivePsychologicalProfile(parsedText, "openai");
       res.json(profile);
     } catch (error) {
