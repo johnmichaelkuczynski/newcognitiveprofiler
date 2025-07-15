@@ -3,83 +3,78 @@ import IntroSection from "@/components/IntroSection";
 import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
+import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
-import ComprehensiveCognitiveProfiler from "@/components/ComprehensiveCognitiveProfiler";
-import ComprehensivePsychologicalProfiler from "@/components/ComprehensivePsychologicalProfiler";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
-import { ModelProvider } from "@/types/analysis";
-import { AlertCircle } from "lucide-react";
+import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
+import { AnalysisType } from "@/types/analysis";
+import { AlertCircle, BrainCircuit, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [textSample, setTextSample] = useState("");
-  const [activeTab, setActiveTab] = useState("basic");
+  const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
   
-  // We don't need selectedModel anymore since we're always analyzing with all providers
-  
+  // Cognitive analysis hook
   const {
-    analyzeText,
-    analyzeFile,
-    isLoading,
-    isError,
-    error,
-    data: analysisResult,
-    reset
+    analyzeText: analyzeCognitiveText,
+    analyzeFile: analyzeCognitiveFile,
+    isLoading: isCognitiveLoading,
+    isError: isCognitiveError,
+    error: cognitiveError,
+    data: cognitiveResult,
+    reset: resetCognitive
   } = useCognitiveAnalysis();
-
-  // Comprehensive analysis handlers
-  const handleCognitiveAnalysis = async (text: string, additionalInfo?: string) => {
-    try {
-      const response = await apiRequest("/api/analyze-cognitive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, additionalInfo })
-      });
-      return response;
-    } catch (error) {
-      console.error('Cognitive analysis failed:', error);
-      throw error;
-    }
-  };
-
-  const handlePsychologicalAnalysis = async (text: string, additionalInfo?: string) => {
-    try {
-      const response = await apiRequest("/api/analyze-psychological", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, additionalInfo })
-      });
-      return response;
-    } catch (error) {
-      console.error('Psychological analysis failed:', error);
-      throw error;
-    }
-  };
+  
+  // Psychological analysis hook
+  const {
+    analyzeText: analyzePsychologicalText,
+    analyzeFile: analyzePsychologicalFile,
+    isLoading: isPsychologicalLoading,
+    isError: isPsychologicalError,
+    error: psychologicalError,
+    data: psychologicalResult,
+    reset: resetPsychological
+  } = usePsychologicalAnalysis();
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextSample(e.target.value);
+  };
+
+  const handleAnalysisTypeChange = (value: string) => {
+    setAnalysisType(value as AnalysisType);
   };
 
   const handleAnalyze = () => {
     if (textSample.length < 100) {
       return;
     }
-    // Analyze with all providers simultaneously
-    analyzeText(textSample);
+    
+    // Analyze with the selected analysis type
+    if (analysisType === "cognitive") {
+      analyzeCognitiveText(textSample);
+    } else {
+      analyzePsychologicalText(textSample);
+    }
   };
 
-  // handleModelChange is no longer needed since we're using all providers
-
   const handleReset = () => {
-    reset();
+    // Reset both analysis types to ensure a clean state
+    resetCognitive();
+    resetPsychological();
+    
+    // Clear the text input
     setTextSample("");
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check if this is a text file (for simple reading) or a document (for server processing)
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     
     if (fileExt === 'txt' || fileExt === 'text') {
@@ -90,16 +85,25 @@ export default function Home() {
         setTextSample(text);
       };
       reader.readAsText(file);
-    } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx' || fileExt === 'rtf') {
+    } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
       // For PDF, Word documents - send directly to server for processing
-      // Analyze with all providers simultaneously
-      await analyzeFile(file);
+      if (analysisType === "cognitive") {
+        analyzeCognitiveFile(file);
+      } else {
+        analyzePsychologicalFile(file);
+      }
     } else {
       // For unsupported formats
       console.error("Unsupported file format");
-      throw new Error("Unsupported file format. Please upload PDF, Word, or text files.");
+      // You could set an error state here and show a message to the user
     }
   };
+
+  // Determine loading, error and result states based on the current analysis type
+  const isLoading = analysisType === "cognitive" ? isCognitiveLoading : isPsychologicalLoading;
+  const isError = analysisType === "cognitive" ? isCognitiveError : isPsychologicalError;
+  const error = analysisType === "cognitive" ? cognitiveError : psychologicalError;
+  const hasResult = analysisType === "cognitive" ? !!cognitiveResult : !!psychologicalResult;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -112,7 +116,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
-            <h1 className="font-heading font-bold text-xl sm:text-2xl text-secondary">Cognitive Profiler</h1>
+            <h1 className="font-heading font-bold text-xl sm:text-2xl text-secondary">Mind Profiler</h1>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -127,59 +131,51 @@ export default function Home() {
       </header>
 
       <main className="flex-grow container mx-auto px-4 py-6 sm:py-8 md:py-12">
-        <IntroSection />
+        {!isLoading && !hasResult && !isError && (
+          <>
+            <IntroSection 
+              analysisType={analysisType}
+              onAnalysisTypeChange={handleAnalysisTypeChange}
+            />
+            
+            <InputSection 
+              textSample={textSample}
+              onTextChange={handleTextChange} 
+              onAnalyze={handleAnalyze}
+              onFileUpload={handleFileUpload}
+              analysisType={analysisType}
+            />
+          </>
+        )}
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">Basic Analysis</TabsTrigger>
-            <TabsTrigger value="cognitive">Comprehensive Cognitive</TabsTrigger>
-            <TabsTrigger value="psychological">Comprehensive Psychological</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="basic" className="space-y-6">
-            {!isLoading && !analysisResult && !isError && (
-              <InputSection 
-                textSample={textSample}
-                onTextChange={handleTextChange} 
-                onAnalyze={handleAnalyze}
-                onFileUpload={handleFileUpload}
-                isUploading={isLoading}
-              />
-            )}
-            
-            {isLoading && <ProcessingIndicator />}
-            
-            {analysisResult && !isLoading && !isError && (
+        {isLoading && (
+          <ProcessingIndicator />
+        )}
+        
+        {!isLoading && !isError && (
+          <>
+            {cognitiveResult && analysisType === "cognitive" && (
               <ResultsSection 
-                result={analysisResult} 
+                result={cognitiveResult} 
                 onNewAnalysis={handleReset}
               />
             )}
             
-            {isError && (
-              <ErrorSection 
-                errorMessage={error?.message || "We were unable to process your text. Please check your input and try again."}
-                onDismiss={reset}
+            {psychologicalResult && analysisType === "psychological" && (
+              <SimplePsychologicalResults 
+                result={psychologicalResult}
+                onNewAnalysis={handleReset}
               />
             )}
-          </TabsContent>
-          
-          <TabsContent value="cognitive" className="space-y-6">
-            <ComprehensiveCognitiveProfiler 
-              text={textSample}
-              onAnalyze={handleCognitiveAnalysis}
-              isLoading={isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="psychological" className="space-y-6">
-            <ComprehensivePsychologicalProfiler 
-              text={textSample}
-              onAnalyze={handlePsychologicalAnalysis}
-              isLoading={isLoading}
-            />
-          </TabsContent>
-        </Tabs>
+          </>
+        )}
+        
+        {isError && (
+          <ErrorSection 
+            errorMessage={error?.message || "We were unable to process your text. Please check your input and try again."}
+            onDismiss={handleReset}
+          />
+        )}
       </main>
 
       <Footer />
