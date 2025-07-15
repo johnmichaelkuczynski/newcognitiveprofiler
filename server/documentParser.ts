@@ -2,7 +2,7 @@ import path from 'path';
 import mammoth from 'mammoth';
 
 /**
- * Parses the content of Word and PDF documents
+ * Parses the content of Word and text documents
  */
 export async function parseDocument(file: any): Promise<string> {
   try {
@@ -10,10 +10,9 @@ export async function parseDocument(file: any): Promise<string> {
     
     // Handle different file types
     if (fileExt === '.pdf') {
-      // For PDFs, we'll just extract text from metadata for now
-      // since pdf-parse is having issues
-      return extractMetadataFromFile(file) || 
-             "PDF content could not be fully extracted. Consider converting to Word or text format for better results.";
+      // Reject PDF files with a clear message
+      return "PDF files are not supported. Please convert your document to plain text (.txt) or Word (.docx) format.";
+    
     } else if (fileExt === '.docx' || fileExt === '.doc') {
       return await parseWord(file.buffer);
     } else {
@@ -51,6 +50,8 @@ function extractMetadataFromFile(file: any): string {
   
   return metadata.join('\n\n');
 }
+
+
 
 /**
  * Parse Word documents using mammoth

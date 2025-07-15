@@ -2,16 +2,7 @@ import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+// Users table removed - no authentication needed
 
 export const analysisRequests = pgTable("analysis_requests", {
   id: serial("id").primaryKey(),
@@ -24,7 +15,6 @@ export const insertAnalysisRequestSchema = createInsertSchema(analysisRequests).
   text: true
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+// User types removed - no authentication needed
 export type InsertAnalysisRequest = z.infer<typeof insertAnalysisRequestSchema>;
 export type AnalysisRequest = typeof analysisRequests.$inferSelect;
