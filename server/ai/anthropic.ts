@@ -20,14 +20,6 @@ This may be a full paper, abstract, fragment, or rough sketch. That does not mat
 Estimate the author's intelligence on a scale from 1 to 100.
 Then describe the cognitive character of the mind behind the text.
 
-CRITICAL SCORING CALIBRATION:
-For sophisticated academic texts showing systematic analysis, precise terminology, and complex reasoning:
-- Score 94-99: Exceptional philosophical/academic analysis with original insights
-- Score 90-94: Highly sophisticated academic reasoning within established frameworks
-- Score 85-89: Strong analytical thinking with good technical competence
-
-Remember: A score of 83 means 17% of people are more intelligent - this is WRONG for texts demonstrating PhD-level analysis, systematic conceptual work, or sophisticated theoretical frameworks.
-
 You may comment on:
 - Is this mind analytical, synthetic, mechanical, imitative, original, confused, creative, disciplined, superficial, visionary?
 - Does it show evidence of deep reasoning, abstraction, novelty, inferential control, or originality?
@@ -42,9 +34,6 @@ DO NOT penalize for:
 Your job is to evaluate intelligence, not to give feedback.
 
 This is a cognitive profiling task. Be precise. Be bold. Be honest.
-
-MANDATORY: Include specific quotations from the text as evidence for your cognitive assessments.
-Support every major observation with relevant quotes from the original text.
 
 Respond with a JSON object with the following structure (and nothing else):
 {

@@ -8,19 +8,6 @@ The Cognitive Profiler is a web application that analyzes writing samples to gen
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (January 2025)
-
-- Fixed critical authentication issue: Registration now properly creates user sessions
-- Implemented credit-based preview system - no more error messages for insufficient credits
-- Updated pricing tiers to exact user specifications: $5→5K, $10→20K, $100→500K, $1000→10M tokens
-- Enhanced PreviewResults component to handle registered users without credits
-- Fixed registration loop by ensuring session creation after successful registration
-- Fixed payment system to work with live Stripe credentials:
-  - Replaced hardcoded test cards with proper Stripe Elements
-  - Added client-side payment confirmation instead of relying on webhooks
-  - Implemented /api/process-payment endpoint for immediate credit updates
-  - Fixed environment variable naming (VITE_STRIPE_PUBLIC_KEY)
-
 ## System Architecture
 
 The Cognitive Profiler uses a modern stack with React on the frontend and Express.js on the backend, following a client-server architecture pattern. The application utilizes a PostgreSQL database (via Drizzle ORM) for data persistence. 

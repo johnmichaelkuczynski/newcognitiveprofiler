@@ -4,9 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 // Type for multi-provider analysis results
-export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysisResult> & {
-  originalText?: string; // Add original text to the result
-};
+export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysisResult>;
 
 export function useCognitiveAnalysis() {
   const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
@@ -14,9 +12,9 @@ export function useCognitiveAnalysis() {
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
-      const response = await apiRequest("POST", "/api/analyze-all", { text, analysisType: "cognitive" });
+      const response = await apiRequest("POST", "/api/analyze-all", { text });
       const result = await response.json();
-      return { ...result, originalText: text };
+      return result as MultiProviderAnalysisResult;
     },
     onSuccess: (result) => {
       setData(result);
@@ -27,10 +25,9 @@ export function useCognitiveAnalysis() {
   const fileMutation = useMutation({
     mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
-      formData.append('document', file);
-      formData.append('analysisType', 'cognitive');
+      formData.append('file', file);
       
-      const response = await fetch('/api/analyze-document', {
+      const response = await fetch('/api/upload-document-all', {
         method: 'POST',
         body: formData,
       });
@@ -48,6 +45,16 @@ export function useCognitiveAnalysis() {
     },
   });
 
+  // Analyze text with all providers
+  const analyzeText = (text: string) => {
+    textMutation.mutate({ text });
+  };
+
+  // Analyze file with all providers
+  const analyzeFile = (file: File) => {
+    fileMutation.mutate({ file });
+  };
+
   const reset = () => {
     setData(null);
     textMutation.reset();
@@ -55,12 +62,12 @@ export function useCognitiveAnalysis() {
   };
 
   return {
-    analyzeText: ({ text }: { text: string }) => textMutation.mutate({ text }),
-    analyzeFile: ({ file }: { file: File }) => fileMutation.mutate({ file }),
-    data,
+    analyzeText,
+    analyzeFile,
     isLoading: textMutation.isPending || fileMutation.isPending,
     isError: textMutation.isError || fileMutation.isError,
     error: textMutation.error || fileMutation.error,
+    data,
     reset,
   };
 }
