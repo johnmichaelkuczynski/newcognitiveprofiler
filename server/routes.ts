@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./ai";
+import { analyzeText, analyzeTextWithAllProviders, analyzeCognitiveParameters, analyzePsychologicalParameters, type ModelProvider } from "./ai";
 import { parseDocument } from "./documentParser";
 import multer from "multer";
 import { z } from "zod";
@@ -134,6 +134,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error processing document:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
       res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Comprehensive cognitive analysis endpoint
+  app.post("/api/analyze-cognitive", async (req, res) => {
+    try {
+      const { text, additionalInfo } = req.body;
+      
+      if (!text || text.length < 100) {
+        return res.status(400).json({ error: "Text must be at least 100 characters long" });
+      }
+      
+      const result = await analyzeCognitiveParameters(text, additionalInfo);
+      res.json(result);
+    } catch (error) {
+      console.error('Cognitive analysis error:', error);
+      res.status(500).json({ error: "Cognitive analysis failed" });
+    }
+  });
+
+  // Comprehensive psychological analysis endpoint
+  app.post("/api/analyze-psychological", async (req, res) => {
+    try {
+      const { text, additionalInfo } = req.body;
+      
+      if (!text || text.length < 100) {
+        return res.status(400).json({ error: "Text must be at least 100 characters long" });
+      }
+      
+      const result = await analyzePsychologicalParameters(text, additionalInfo);
+      res.json(result);
+    } catch (error) {
+      console.error('Psychological analysis error:', error);
+      res.status(500).json({ error: "Psychological analysis failed" });
     }
   });
 
