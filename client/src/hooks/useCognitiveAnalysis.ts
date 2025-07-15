@@ -14,7 +14,16 @@ export function useCognitiveAnalysis() {
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
-      const response = await apiRequest("POST", "/api/analyze-all", { text });
+      const response = await apiRequest("POST", "/api/analyze-all", { 
+        text, 
+        analysisType: "cognitive" 
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Analysis failed');
+      }
+      
       const result = await response.json();
       return { ...result, originalText: text };
     },
@@ -28,6 +37,7 @@ export function useCognitiveAnalysis() {
     mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('analysisType', 'cognitive');
       
       const response = await fetch('/api/upload-document-all', {
         method: 'POST',

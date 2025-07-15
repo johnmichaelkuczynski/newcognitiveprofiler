@@ -18,6 +18,12 @@ export function usePsychologicalAnalysis() {
         text, 
         analysisType: "psychological" 
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Analysis failed');
+      }
+      
       const result = await response.json();
       return { ...result, originalText: text };
     },

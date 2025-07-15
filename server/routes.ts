@@ -1,16 +1,20 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-// Removed storage import - no authentication
 import { analyzeText, analyzeTextWithAllProviders, type ModelProvider } from "./ai";
 import { parseDocument } from "./documentParser";
 import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
 import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
+import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits } from "./auth";
+import { createPayPalOrder, capturePayPalOrder, creditPackages, getUserCredits } from "./payments";
 import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { neon } from "@neondatabase/serverless";
 
 const analyzeRequestSchema = z.object({
   text: z.string().min(100, "Text must be at least 100 characters long"),
@@ -18,7 +22,33 @@ const analyzeRequestSchema = z.object({
   analysisType: z.enum(["cognitive", "psychological"]).default("cognitive")
 });
 
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+    username?: string;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure session middleware
+  const PgStore = ConnectPgSimple(session);
+  const sql = neon(process.env.DATABASE_URL!);
+  
+  app.use(session({
+    store: new PgStore({
+      conString: process.env.DATABASE_URL!,
+      createTableIfMissing: true
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+  }));
+
   // Configure multer for file uploads
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -27,17 +57,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
-  // Analysis endpoint - using all providers
+  // Authentication middleware
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    next();
+  };
+
+  // Get current user info
+  app.get("/api/me", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    try {
+      const user = await getUserById(req.session.userId);
+      if (!user) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Register endpoint
+  app.post("/api/register", async (req, res) => {
+    try {
+      const userData = registerSchema.parse(req.body);
+      const user = await registerUser(userData);
+      
+      // Auto-login after registration
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      
+      res.json(user);
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Registration failed' });
+    }
+  });
+
+  // Login endpoint
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { username, password } = loginSchema.parse(req.body);
+      const user = await loginUser(username, password);
+      
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      
+      res.json(user);
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Login failed' });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Logout failed' });
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
+  // Get credit packages
+  app.get("/api/credit-packages", (req, res) => {
+    res.json(creditPackages);
+  });
+
+  // Create PayPal order
+  app.post("/api/create-order", requireAuth, async (req, res) => {
+    try {
+      const { packageId } = req.body;
+      const orderId = await createPayPalOrder(req.session.userId!, packageId);
+      res.json({ orderId });
+    } catch (error) {
+      console.error('Create order error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to create order' });
+    }
+  });
+
+  // Capture PayPal order
+  app.post("/api/capture-order", requireAuth, async (req, res) => {
+    try {
+      const { orderId } = req.body;
+      const result = await capturePayPalOrder(orderId);
+      
+      if (result.success) {
+        const credits = await getUserCredits(req.session.userId!);
+        res.json({ success: true, credits });
+      } else {
+        res.status(400).json({ success: false, message: 'Payment capture failed' });
+      }
+    } catch (error) {
+      console.error('Capture order error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to capture payment' });
+    }
+  });
+
+  // Preview analysis endpoint - for unregistered users (limited results)
+  app.post("/api/analyze-preview", async (req, res) => {
+    try {
+      // Validate request body
+      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
+      
+      // Call one AI API for preview (using deepseek as it's fastest)
+      const analysis = await analyzeText(text, "deepseek", analysisType);
+      
+      // Return limited preview result
+      const previewResult = {
+        preview: true,
+        provider: "deepseek",
+        analysis: analysis,
+        message: "This is a preview of the analysis. Register to get full multi-provider analysis with detailed reports."
+      };
+      
+      res.json(previewResult);
+    } catch (error) {
+      console.error(`Error analyzing text preview (${req.body.analysisType || 'cognitive'}):`, error);
+      
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: fromZodError(error).message 
+        });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
+      res.status(500).json({ 
+        message: errorMessage 
+      });
+    }
+  });
+
+  // Analysis endpoint - using all providers (requires authentication and credits)
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ 
+          message: 'Authentication required for full analysis',
+          requiresAuth: true
+        });
+      }
+
+      // Get user and check credits
+      const user = await getUserById(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      const requiredCredits = 1; // Each analysis costs 1 credit
+      if (user.credits < requiredCredits) {
+        return res.status(402).json({ 
+          message: 'Insufficient credits for full analysis',
+          requiresPayment: true,
+          currentCredits: user.credits,
+          requiredCredits: requiredCredits
+        });
+      }
+
+      // Deduct credits
+      await deductUserCredits(req.session.userId, requiredCredits);
+      
       // Call all AI APIs and get combined results
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return all analysis results
-      res.json(analyses);
+      // Return all analysis results with updated credits
+      res.json({
+        ...analyses,
+        creditsUsed: requiredCredits,
+        remainingCredits: user.credits - requiredCredits
+      });
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       
