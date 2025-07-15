@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Cognitive Profiler is a comprehensive web application that analyzes writing samples and documents to generate deep insights about cognitive patterns, psychological profiles, and reasoning styles. The application features both basic and comprehensive profiling modes, with the comprehensive modes analyzing 20 specialized parameters each for cognitive and psychological dimensions.
+The Cognitive Profiler is a web application that analyzes writing samples to generate insights about the author's cognitive patterns, reasoning style, and estimated intelligence. The application uses an AI-powered text analysis system to process user submissions and provide detailed cognitive profiles.
 
 ## User Preferences
 
@@ -10,16 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
-- **Authentication System Removal**: Completely removed all authentication, user management, and payment systems to create a simplified, open-access cognitive profiling platform
-- **Comprehensive Profiling System**: Added two new advanced profiling tabs:
-  - **Comprehensive Cognitive Profiling**: 20 specialized cognitive parameters including compression tolerance, inferential depth, semantic curvature, and more
-  - **Comprehensive Psychological Profiling**: 20 psychological parameters including attachment mode, drive sublimation, validation hunger, and more
-- **Document Upload Support**: All tabs now support Word, PDF, and TXT document uploads for analysis
-- **Four-Tab Interface**: Restructured UI with Basic Cognitive, Basic Psychological, Comprehensive Cognitive, and Comprehensive Psychological tabs
-- **Simplified Database**: Reduced schema to only analysis_requests table
-- **New API Endpoints**: Added `/api/comprehensive-cognitive-analysis`, `/api/comprehensive-psychological-analysis`, and document upload endpoints
-- **Drag-and-Drop Upload**: Added comprehensive drag-and-drop functionality for all document upload areas
-- **Anthropic as Default**: Changed default AI provider from OpenAI to Anthropic (Claude) for comprehensive analysis
+- Fixed critical authentication issue: Registration now properly creates user sessions
+- Implemented credit-based preview system - no more error messages for insufficient credits
+- Updated pricing tiers to exact user specifications: $5→5K, $10→20K, $100→500K, $1000→10M tokens
+- Enhanced PreviewResults component to handle registered users without credits
+- Fixed registration loop by ensuring session creation after successful registration
+- Fixed payment system to work with live Stripe credentials:
+  - Replaced hardcoded test cards with proper Stripe Elements
+  - Added client-side payment confirmation instead of relying on webhooks
+  - Implemented /api/process-payment endpoint for immediate credit updates
+  - Fixed environment variable naming (VITE_STRIPE_PUBLIC_KEY)
 
 ## System Architecture
 

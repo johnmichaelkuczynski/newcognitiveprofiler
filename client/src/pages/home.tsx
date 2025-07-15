@@ -5,22 +5,19 @@ import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
 import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
-import ComprehensiveCognitiveProfiler from "@/components/ComprehensiveCognitiveProfiler";
-import ComprehensivePsychologicalProfiler from "@/components/ComprehensivePsychologicalProfiler";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
 import { AnalysisType } from "@/types/analysis";
-import { AlertCircle, BrainCircuit, Heart, Brain, HeartPulse } from "lucide-react";
+import { AlertCircle, BrainCircuit, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [textSample, setTextSample] = useState("");
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
-  const [activeTab, setActiveTab] = useState("basic-cognitive");
   
   // Cognitive analysis hook
   const {
@@ -118,114 +115,52 @@ export default function Home() {
       <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12">
         <Header onShowHelp={() => setShowHelp(true)} />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="basic-cognitive" className="flex items-center gap-2">
-              <BrainCircuit className="h-4 w-4" />
-              Basic Cognitive
-            </TabsTrigger>
-            <TabsTrigger value="basic-psychological" className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Basic Psychological
-            </TabsTrigger>
-            <TabsTrigger value="comprehensive-cognitive" className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              Comprehensive Cognitive
-            </TabsTrigger>
-            <TabsTrigger value="comprehensive-psychological" className="flex items-center gap-2">
-              <HeartPulse className="h-4 w-4" />
-              Comprehensive Psychological
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic-cognitive" className="mt-6">
-            {!isLoading && !hasResult && !isError && (
-              <>
-                <IntroSection 
-                  analysisType="cognitive"
-                  onAnalysisTypeChange={handleAnalysisTypeChange}
-                />
-                
-                <InputSection 
-                  textSample={textSample}
-                  onTextChange={handleTextChange} 
-                  onAnalyze={() => {
-                    setAnalysisType("cognitive");
-                    handleAnalyze();
-                  }}
-                  onFileUpload={handleFileUpload}
-                  analysisType="cognitive"
-                />
-              </>
-            )}
+        {!isLoading && !hasResult && !isError && (
+          <>
+            <IntroSection 
+              analysisType={analysisType}
+              onAnalysisTypeChange={handleAnalysisTypeChange}
+            />
             
-            {isLoading && analysisType === "cognitive" && (
-              <ProcessingIndicator />
-            )}
-            
-            {!isLoading && !isError && cognitiveResult && (
+            <InputSection 
+              textSample={textSample}
+              onTextChange={handleTextChange} 
+              onAnalyze={handleAnalyze}
+              onFileUpload={handleFileUpload}
+              analysisType={analysisType}
+            />
+          </>
+        )}
+        
+        {isLoading && (
+          <ProcessingIndicator />
+        )}
+        
+        {!isLoading && !isError && (
+          <>
+            {/* Show results based on analysis type */}
+            {cognitiveResult && analysisType === "cognitive" && (
               <ResultsSection 
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
               />
             )}
             
-            {isError && analysisType === "cognitive" && (
-              <ErrorSection 
-                errorMessage={error?.message || "We were unable to process your text. Please check your input and try again."}
-                onDismiss={handleReset}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="basic-psychological" className="mt-6">
-            {!isLoading && !hasResult && !isError && (
-              <>
-                <IntroSection 
-                  analysisType="psychological"
-                  onAnalysisTypeChange={handleAnalysisTypeChange}
-                />
-                
-                <InputSection 
-                  textSample={textSample}
-                  onTextChange={handleTextChange} 
-                  onAnalyze={() => {
-                    setAnalysisType("psychological");
-                    handleAnalyze();
-                  }}
-                  onFileUpload={handleFileUpload}
-                  analysisType="psychological"
-                />
-              </>
-            )}
-            
-            {isLoading && analysisType === "psychological" && (
-              <ProcessingIndicator />
-            )}
-            
-            {!isLoading && !isError && psychologicalResult && (
+            {psychologicalResult && analysisType === "psychological" && (
               <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
               />
             )}
-            
-            {isError && analysisType === "psychological" && (
-              <ErrorSection 
-                errorMessage={error?.message || "We were unable to process your text. Please check your input and try again."}
-                onDismiss={handleReset}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="comprehensive-cognitive" className="mt-6">
-            <ComprehensiveCognitiveProfiler />
-          </TabsContent>
-
-          <TabsContent value="comprehensive-psychological" className="mt-6">
-            <ComprehensivePsychologicalProfiler />
-          </TabsContent>
-        </Tabs>
+          </>
+        )}
+        
+        {isError && (
+          <ErrorSection 
+            errorMessage={error?.message || "We were unable to process your text. Please check your input and try again."}
+            onDismiss={handleReset}
+          />
+        )}
         
         <Footer />
         
