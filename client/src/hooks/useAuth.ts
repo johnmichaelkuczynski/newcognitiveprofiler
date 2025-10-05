@@ -7,6 +7,10 @@ export interface AuthUser {
   username: string;
   email?: string;
   credits: number;
+  credits_zhi1: number;
+  credits_zhi2: number;
+  credits_zhi3: number;
+  credits_zhi4: number;
 }
 
 export function useAuth() {
@@ -55,12 +59,27 @@ export function useAuth() {
     }
   };
 
+  const updateAllCredits = (credits: { zhi1: number; zhi2: number; zhi3: number; zhi4: number }) => {
+    if (user) {
+      const updatedUser = { 
+        ...user, 
+        credits_zhi1: credits.zhi1,
+        credits_zhi2: credits.zhi2,
+        credits_zhi3: credits.zhi3,
+        credits_zhi4: credits.zhi4
+      };
+      setUser(updatedUser);
+      queryClient.setQueryData(['/api/me'], updatedUser);
+    }
+  };
+
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
     login,
     logout,
-    updateCredits
+    updateCredits,
+    updateAllCredits
   };
 }

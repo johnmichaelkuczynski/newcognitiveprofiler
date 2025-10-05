@@ -7,6 +7,8 @@ import SimplePsychologicalResults from "@/components/SimplePsychologicalResults"
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import AuthModal from "@/components/AuthModal";
+import CreditsDisplay from "@/components/CreditsDisplay";
+import StripePaymentModal from "@/components/StripePaymentModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
@@ -20,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
   const [textSample, setTextSample] = useState("");
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
@@ -202,6 +205,20 @@ export default function Home() {
       </header>
 
       <main className="flex-grow container mx-auto px-4 py-6 sm:py-8 md:py-12">
+        {/* Credits Display */}
+        {isAuthenticated && user && (
+          <CreditsDisplay 
+            credits={{
+              zhi1: user.credits_zhi1,
+              zhi2: user.credits_zhi2,
+              zhi3: user.credits_zhi3,
+              zhi4: user.credits_zhi4
+            }}
+            onPurchaseClick={() => setShowPayment(true)}
+            className="mb-6"
+          />
+        )}
+        
         {!isLoading && !hasResult && !isError && (
           <>
             <IntroSection 
@@ -265,6 +282,19 @@ export default function Home() {
           onClose={() => setShowAuth(false)}
           onAuthSuccess={handleAuthSuccess}
           defaultTab={authTab}
+        />
+      )}
+
+      {showPayment && isAuthenticated && user && (
+        <StripePaymentModal 
+          isOpen={showPayment}
+          onClose={() => setShowPayment(false)}
+          currentCredits={{
+            zhi1: user.credits_zhi1,
+            zhi2: user.credits_zhi2,
+            zhi3: user.credits_zhi3,
+            zhi4: user.credits_zhi4
+          }}
         />
       )}
     </div>
