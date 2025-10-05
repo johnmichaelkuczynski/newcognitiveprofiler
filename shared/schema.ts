@@ -8,7 +8,11 @@ export const users = pgTable("users", {
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
   email: text("email"), // Optional email field
-  credits: integer("credits").default(0).notNull(),
+  credits: integer("credits").default(0).notNull(), // Legacy field - kept for backward compatibility
+  credits_zhi1: integer("credits_zhi1").default(0).notNull(), // DeepSeek word credits
+  credits_zhi2: integer("credits_zhi2").default(0).notNull(), // OpenAI word credits
+  credits_zhi3: integer("credits_zhi3").default(0).notNull(), // Anthropic word credits
+  credits_zhi4: integer("credits_zhi4").default(0).notNull(), // Perplexity word credits
   created_at: timestamp("created_at").defaultNow().notNull()
 });
 
@@ -26,7 +30,13 @@ export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").references(() => users.id).notNull(),
   amount: integer("amount").notNull(), // Amount in cents
-  credits: integer("credits").notNull(), // Number of credits purchased
+  credits: integer("credits").notNull(), // Number of credits purchased (legacy)
+  credits_zhi1: integer("credits_zhi1").default(0).notNull(), // DeepSeek word credits purchased
+  credits_zhi2: integer("credits_zhi2").default(0).notNull(), // OpenAI word credits purchased
+  credits_zhi3: integer("credits_zhi3").default(0).notNull(), // Anthropic word credits purchased
+  credits_zhi4: integer("credits_zhi4").default(0).notNull(), // Perplexity word credits purchased
+  provider: text("provider"), // Which provider this purchase is for (zhi1, zhi2, zhi3, zhi4, or 'all')
+  stripe_payment_intent_id: text("stripe_payment_intent_id"),
   paypal_transaction_id: text("paypal_transaction_id"),
   status: text("status").notNull(), // 'pending', 'completed', 'failed'
   created_at: timestamp("created_at").defaultNow().notNull()
