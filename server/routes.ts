@@ -8,6 +8,7 @@ import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
 import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits } from "./auth";
 import { createPayPalOrder, capturePayPalOrder, creditPackages, getUserCredits } from "./payments";
+import { createCheckoutSession, handleWebhook, stripeCreditPackages } from "./stripe";
 import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
@@ -178,6 +179,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Capture order error:', error);
       res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to capture payment' });
+    }
+  });
+
+  // Get Stripe credit packages
+  app.get("/api/stripe-packages", (req, res) => {
+    res.json(stripeCreditPackages);
+  });
+
+  // Create Stripe checkout session
+  app.post("/api/create-checkout", requireAuth, async (req, res) => {
+    try {
+      const { packageId } = req.body;
+      const sessionUrl = await createCheckoutSession(req.session.userId!, packageId);
+      res.json({ url: sessionUrl });
+    } catch (error) {
+      console.error('Create checkout error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to create checkout' });
+    }
+  });
+
+  // Stripe webhook handler
+  app.post("/api/webhook/stripe", async (req, res) => {
+    const signature = req.headers['stripe-signature'] as string;
+    
+    try {
+      // Try primary webhook secret first
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER;
+      
+      if (!webhookSecret) {
+        throw new Error('No webhook secret configured');
+      }
+
+      const result = await handleWebhook(req.body, signature, webhookSecret);
+      
+      res.json({ received: true, ...result });
+    } catch (error) {
+      console.error('Webhook error:', error);
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Webhook failed' });
     }
   });
 
