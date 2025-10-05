@@ -5,10 +5,17 @@ import { apiRequest } from "@/lib/queryClient";
 
 // Type for multi-provider analysis results
 export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysisResult> & {
-  originalText?: string; // Add original text to the result
+  originalText?: string;
+  creditsUsed?: number;
+  remainingCredits?: {
+    zhi1: number;
+    zhi2: number;
+    zhi3: number;
+    zhi4: number;
+  };
 };
 
-export function useCognitiveAnalysis() {
+export function useCognitiveAnalysis(onCreditsUpdated?: (credits: { zhi1: number; zhi2: number; zhi3: number; zhi4: number }) => void) {
   const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
 
   // Mutation for analyzing text with all providers simultaneously
@@ -29,6 +36,10 @@ export function useCognitiveAnalysis() {
     },
     onSuccess: (result) => {
       setData(result);
+      // Update credits if provided
+      if (result.remainingCredits && onCreditsUpdated) {
+        onCreditsUpdated(result.remainingCredits);
+      }
     },
   });
 
@@ -54,6 +65,10 @@ export function useCognitiveAnalysis() {
     },
     onSuccess: (result) => {
       setData(result);
+      // Update credits if provided
+      if (result.remainingCredits && onCreditsUpdated) {
+        onCreditsUpdated(result.remainingCredits);
+      }
     },
   });
 

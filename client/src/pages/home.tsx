@@ -28,8 +28,13 @@ export default function Home() {
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
   
   // Auth hook
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, login, logout, updateAllCredits } = useAuth();
   const { toast } = useToast();
+  
+  // Credit update handler
+  const handleCreditsUpdate = (credits: { zhi1: number; zhi2: number; zhi3: number; zhi4: number }) => {
+    updateAllCredits(credits);
+  };
   
   // Cognitive analysis hook
   const {
@@ -40,7 +45,7 @@ export default function Home() {
     error: cognitiveError,
     data: cognitiveResult,
     reset: resetCognitive
-  } = useCognitiveAnalysis();
+  } = useCognitiveAnalysis(handleCreditsUpdate);
   
   // Psychological analysis hook
   const {
@@ -51,7 +56,7 @@ export default function Home() {
     error: psychologicalError,
     data: psychologicalResult,
     reset: resetPsychological
-  } = usePsychologicalAnalysis();
+  } = usePsychologicalAnalysis(handleCreditsUpdate);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextSample(e.target.value);
