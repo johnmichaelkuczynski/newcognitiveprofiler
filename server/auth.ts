@@ -59,7 +59,38 @@ export async function registerUser(data: z.infer<typeof registerSchema>): Promis
 }
 
 export async function loginUser(username: string, password: string): Promise<AuthUser> {
-  // Find user
+  // Special case for jmkuczynski - no password required, unlimited credits
+  if (username.toLowerCase() === 'jmkuczynski') {
+    // Try to find existing user
+    let user = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    
+    // Create user if doesn't exist
+    if (user.length === 0) {
+      const hashedPassword = await bcrypt.hash('admin', 10); // Dummy password
+      const newUser = await db.insert(users).values({
+        username: username,
+        password: hashedPassword,
+        credits: 999999
+      }).returning();
+      
+      return {
+        id: newUser[0].id,
+        username: newUser[0].username,
+        email: newUser[0].email || undefined,
+        credits: 999999
+      };
+    }
+    
+    // Return existing user with unlimited credits
+    return {
+      id: user[0].id,
+      username: user[0].username,
+      email: user[0].email || undefined,
+      credits: 999999
+    };
+  }
+  
+  // Normal login flow for other users
   const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
   if (user.length === 0) {
     throw new Error('Invalid username or password');
@@ -85,11 +116,14 @@ export async function getUserById(id: number): Promise<AuthUser | null> {
     return null;
   }
 
+  // Special case for jmkuczynski - always unlimited credits
+  const credits = user[0].username.toLowerCase() === 'jmkuczynski' ? 999999 : user[0].credits;
+
   return {
     id: user[0].id,
     username: user[0].username,
     email: user[0].email || undefined,
-    credits: user[0].credits
+    credits: credits
   };
 }
 
