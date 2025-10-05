@@ -227,9 +227,9 @@ export default function ComprehensiveReportModal({
 
   const getProviderName = (provider: ModelProvider): string => {
     const providerNames: Record<ModelProvider, string> = {
-      openai: "OpenAI",
-      anthropic: "Anthropic (Claude)",
-      perplexity: "Perplexity"
+      openai: "Zhi2",
+      anthropic: "Zhi3",
+      perplexity: "Zhi4"
     };
     return providerNames[provider] || provider;
   };

@@ -90,7 +90,7 @@ export default function InputSection({
             <p className="text-xs text-neutral-500">Supported formats: .txt, .doc, .docx, .rtf</p>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-neutral-700">
-                Analysis using: OpenAI, Anthropic & Perplexity
+                Analysis using: Zhi1, Zhi2, Zhi3 & Zhi4
               </span>
             </div>
           </div>

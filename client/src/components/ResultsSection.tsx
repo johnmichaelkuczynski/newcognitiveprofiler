@@ -32,10 +32,10 @@ const providerInfo: Record<string, {
   color: string;
   icon: React.ComponentType<any>;
 }> = {
-  deepseek: { name: "DeepSeek", color: "bg-gray-800", icon: Layers },
-  openai: { name: "OpenAI", color: "bg-emerald-600", icon: Sparkles },
-  anthropic: { name: "Anthropic", color: "bg-blue-600", icon: BrainCircuit },
-  perplexity: { name: "Perplexity", color: "bg-purple-600", icon: Lightbulb }
+  deepseek: { name: "Zhi1", color: "bg-gray-800", icon: Layers },
+  openai: { name: "Zhi2", color: "bg-emerald-600", icon: Sparkles },
+  anthropic: { name: "Zhi3", color: "bg-blue-600", icon: BrainCircuit },
+  perplexity: { name: "Zhi4", color: "bg-purple-600", icon: Lightbulb }
 };
 
 // Single profile card component

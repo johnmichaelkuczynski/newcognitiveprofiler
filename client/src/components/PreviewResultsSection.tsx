@@ -41,7 +41,7 @@ export default function PreviewResultsSection({
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Analysis Preview</span>
-              <Badge variant="outline">DeepSeek AI</Badge>
+              <Badge variant="outline">Zhi1</Badge>
             </CardTitle>
             <CardDescription>
               Limited preview of cognitive analysis results
@@ -85,7 +85,7 @@ export default function PreviewResultsSection({
                 </span>
               </div>
               <p className="text-xs text-gray-600 mb-3">
-                Get comprehensive analysis from multiple AI providers including OpenAI, Anthropic, and Perplexity
+                Get comprehensive analysis from multiple AI providers including Zhi2, Zhi3, and Zhi4
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <div>• Detailed cognitive breakdown</div>

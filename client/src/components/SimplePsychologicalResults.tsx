@@ -14,22 +14,22 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 // Provider information for display
 const providerInfo = {
   deepseek: {
-    name: "DeepSeek",
+    name: "Zhi1",
     color: "bg-gray-800",
     icon: Layers
   },
   openai: {
-    name: "OpenAI",
+    name: "Zhi2",
     color: "bg-emerald-600",
     icon: BrainCircuit
   },
   anthropic: {
-    name: "Anthropic",
+    name: "Zhi3",
     color: "bg-purple-600",
     icon: Users
   },
   perplexity: {
-    name: "Perplexity",
+    name: "Zhi4",
     color: "bg-blue-600",
     icon: Lightbulb
   }
