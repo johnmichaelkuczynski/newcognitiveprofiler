@@ -182,16 +182,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get Stripe credit packages
+  // Get Stripe credit packages (formatted for UI)
   app.get("/api/stripe-packages", (req, res) => {
-    res.json(stripeCreditPackages);
+    // Group packages by price tiers for the UI
+    const packagesByPrice = new Map<number, any>();
+    
+    stripeCreditPackages.forEach(pkg => {
+      if (!packagesByPrice.has(pkg.price)) {
+        packagesByPrice.set(pkg.price, {
+          id: `package_${pkg.price}`,
+          name: `$${pkg.price} Package`,
+          price: pkg.price,
+          wordCredits: { zhi1: 0, zhi2: 0, zhi3: 0, zhi4: 0 },
+          description: `Get credits for all providers`
+        });
+      }
+      
+      const pricePackage = packagesByPrice.get(pkg.price)!;
+      pricePackage.wordCredits[pkg.provider] = pkg.words;
+    });
+    
+    // Convert to array and add better descriptions
+    const formattedPackages = Array.from(packagesByPrice.values()).map(pkg => ({
+      ...pkg,
+      description: `Credits for analyzing text with all 4 AI providers`
+    }));
+    
+    res.json(formattedPackages);
   });
 
   // Create Stripe checkout session
   app.post("/api/create-checkout", requireAuth, async (req, res) => {
     try {
       const { packageId } = req.body;
-      const sessionUrl = await createCheckoutSession(req.session.userId!, packageId);
+      
+      // Parse package ID to get price (format: package_X where X is the price)
+      const price = parseInt(packageId.replace('package_', ''));
+      if (isNaN(price)) {
+        return res.status(400).json({ message: 'Invalid package ID' });
+      }
+      
+      // Find the matching packages for this price tier (one per provider)
+      const matchingPackages = stripeCreditPackages.filter(p => p.price === price);
+      if (matchingPackages.length === 0) {
+        return res.status(400).json({ message: 'No packages found for this price' });
+      }
+      
+      // Use the first matching package to create a multi-provider session
+      const sessionUrl = await createCheckoutSession(req.session.userId!, price, matchingPackages);
       res.json({ url: sessionUrl });
     } catch (error) {
       console.error('Create checkout error:', error);
@@ -344,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File upload endpoint for document analysis with all providers
-  app.post("/api/upload-document-all", upload.single('file'), async (req, res) => {
+  app.post("/api/upload-document-all", requireAuth, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -363,11 +401,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Calculate word count
+      const wordCount = calculateWordCount(extractedText);
+      
+      // Check if user has sufficient credits for all providers
+      const creditCheck = await checkAllProvidersCredits(req.session.userId!, wordCount);
+      
+      if (!creditCheck.success) {
+        return res.status(402).json({
+          message: `Insufficient credits. The following providers don't have enough: ${creditCheck.insufficientProviders?.join(', ')}`,
+          wordCount,
+          credits: creditCheck.credits,
+          insufficientProviders: creditCheck.insufficientProviders
+        });
+      }
+      
+      // Deduct credits for all providers before analysis
+      await Promise.all([
+        deductProviderCredits(req.session.userId!, 'zhi1', wordCount),
+        deductProviderCredits(req.session.userId!, 'zhi2', wordCount),
+        deductProviderCredits(req.session.userId!, 'zhi3', wordCount),
+        deductProviderCredits(req.session.userId!, 'zhi4', wordCount)
+      ]);
+      
       // Analyze the extracted text using all AI providers
       const analyses = await analyzeTextWithAllProviders(extractedText, analysisType);
       
-      // Return all analysis results
-      res.json(analyses);
+      // Get updated user credits to return
+      const updatedUser = await getUserById(req.session.userId!);
+      
+      // Return all analysis results with updated credit balances
+      res.json({
+        ...analyses,
+        creditsUsed: wordCount,
+        remainingCredits: {
+          zhi1: updatedUser?.credits_zhi1 || 0,
+          zhi2: updatedUser?.credits_zhi2 || 0,
+          zhi3: updatedUser?.credits_zhi3 || 0,
+          zhi4: updatedUser?.credits_zhi4 || 0
+        }
+      });
     } catch (error) {
       console.error(`Error processing document with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";

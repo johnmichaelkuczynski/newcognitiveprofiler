@@ -53,12 +53,26 @@ export const stripeCreditPackages: StripeCreditPackage[] = [
 
 export async function createCheckoutSession(
   userId: number,
-  packageId: string
+  price: number,
+  packages: StripeCreditPackage[]
 ): Promise<string> {
-  const creditPackage = stripeCreditPackages.find(p => p.id === packageId);
-  if (!creditPackage) {
-    throw new Error('Invalid package ID');
+  if (packages.length === 0) {
+    throw new Error('No packages provided');
   }
+
+  // Build credit totals from all packages
+  const creditsObj = {
+    credits_zhi1: 0,
+    credits_zhi2: 0,
+    credits_zhi3: 0,
+    credits_zhi4: 0,
+  };
+  
+  packages.forEach(pkg => {
+    creditsObj[`credits_${pkg.provider}`] = pkg.words;
+  });
+  
+  const totalWords = Object.values(creditsObj).reduce((sum, val) => sum + val, 0);
 
   // Create Stripe checkout session
   const session = await stripe.checkout.sessions.create({
@@ -68,10 +82,10 @@ export async function createCheckoutSession(
         price_data: {
           currency: 'usd',
           product_data: {
-            name: `${creditPackage.providerName} Credits`,
-            description: `${creditPackage.words.toLocaleString()} words for ${creditPackage.providerName}`,
+            name: `Mind Profiler Credits - $${price} Package`,
+            description: `${totalWords.toLocaleString()} total words across all AI providers (Zhi1-Zhi4)`,
           },
-          unit_amount: Math.round(creditPackage.price * 100), // Convert to cents
+          unit_amount: Math.round(price * 100), // Convert to cents
         },
         quantity: 1,
       },
@@ -81,26 +95,21 @@ export async function createCheckoutSession(
     cancel_url: `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/?payment=cancel`,
     metadata: {
       userId: userId.toString(),
-      packageId: creditPackage.id,
-      provider: creditPackage.provider,
-      words: creditPackage.words.toString(),
+      price: price.toString(),
+      credits_zhi1: creditsObj.credits_zhi1.toString(),
+      credits_zhi2: creditsObj.credits_zhi2.toString(),
+      credits_zhi3: creditsObj.credits_zhi3.toString(),
+      credits_zhi4: creditsObj.credits_zhi4.toString(),
     },
   });
 
   // Store pending transaction
-  const creditsObj = {
-    credits_zhi1: creditPackage.provider === 'zhi1' ? creditPackage.words : 0,
-    credits_zhi2: creditPackage.provider === 'zhi2' ? creditPackage.words : 0,
-    credits_zhi3: creditPackage.provider === 'zhi3' ? creditPackage.words : 0,
-    credits_zhi4: creditPackage.provider === 'zhi4' ? creditPackage.words : 0,
-  };
-
   await db.insert(transactions).values({
     user_id: userId,
-    amount: Math.round(creditPackage.price * 100), // Store in cents
-    credits: 0, // Legacy field
+    amount: Math.round(price * 100), // Store in cents
+    credits: 0, // Legacy field, not used
     ...creditsObj,
-    provider: creditPackage.provider,
+    provider: 'multi', // Multi-provider package
     stripe_payment_intent_id: session.id,
     status: 'pending'
   });
@@ -121,11 +130,13 @@ export async function handleWebhook(
       
       // Extract metadata
       const userId = parseInt(session.metadata?.userId || '0');
-      const provider = session.metadata?.provider as 'zhi1' | 'zhi2' | 'zhi3' | 'zhi4';
-      const words = parseInt(session.metadata?.words || '0');
+      const credits_zhi1 = parseInt(session.metadata?.credits_zhi1 || '0');
+      const credits_zhi2 = parseInt(session.metadata?.credits_zhi2 || '0');
+      const credits_zhi3 = parseInt(session.metadata?.credits_zhi3 || '0');
+      const credits_zhi4 = parseInt(session.metadata?.credits_zhi4 || '0');
 
-      if (!userId || !provider || !words) {
-        throw new Error('Invalid session metadata');
+      if (!userId) {
+        throw new Error('Invalid session metadata: missing userId');
       }
 
       // Find the transaction
@@ -144,18 +155,25 @@ export async function handleWebhook(
         .set({ status: 'completed' })
         .where(eq(transactions.id, txn.id));
 
-      // Add credits to user based on provider
-      const creditField = `credits_${provider}` as const;
+      // Add credits to user for all providers
       await db.update(users)
         .set({ 
-          [creditField]: sql`${users[creditField]} + ${words}` 
+          credits_zhi1: sql`${users.credits_zhi1} + ${credits_zhi1}`,
+          credits_zhi2: sql`${users.credits_zhi2} + ${credits_zhi2}`,
+          credits_zhi3: sql`${users.credits_zhi3} + ${credits_zhi3}`,
+          credits_zhi4: sql`${users.credits_zhi4} + ${credits_zhi4}`,
         })
         .where(eq(users.id, userId));
 
       return {
         success: true,
         userId,
-        creditsAdded: { [provider]: words }
+        creditsAdded: {
+          zhi1: credits_zhi1,
+          zhi2: credits_zhi2,
+          zhi3: credits_zhi3,
+          zhi4: credits_zhi4
+        }
       };
     }
 

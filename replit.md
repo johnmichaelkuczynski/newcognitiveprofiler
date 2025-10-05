@@ -1,16 +1,20 @@
-# Cognitive Profiler Application
+# Mind Profiler Application
 
 ## Overview
 
-The Cognitive Profiler is a web application that analyzes writing samples to generate insights about the author's cognitive patterns, reasoning style, and estimated intelligence. The application uses an AI-powered text analysis system to process user submissions and provide detailed cognitive profiles.
+The Mind Profiler is a web application that analyzes writing samples to generate insights about the author's cognitive patterns, reasoning style, and estimated intelligence. The application uses an AI-powered text analysis system with multiple providers to process user submissions and provide detailed cognitive and psychological profiles.
 
 ## Recent Changes (October 2025)
 
-1. **Paywall Removed**: All analysis features are now completely free for everyone. No authentication or credits required to use the full multi-provider analysis.
+1. **Credit-Based Payment System**: Implemented Stripe payment integration with word-based credits:
+   - Users must purchase credits to analyze text
+   - Credits are tracked separately per AI provider (Zhi1, Zhi2, Zhi3, Zhi4)
+   - Analysis cost calculated by word count
+   - Real-time credit deduction during analysis
 
 2. **Special Admin Access**: Username "jmkuczynski" (case-insensitive) has special privileges:
    - Can login without entering a password (password field is optional)
-   - Always displays 999,999 credits (unlimited)
+   - Always displays 999,999 credits per provider (unlimited)
    - Account is auto-created on first login if it doesn't exist
 
 3. **Provider Rebranding**: AI provider names in the UI have been rebranded:
@@ -20,7 +24,13 @@ The Cognitive Profiler is a web application that analyzes writing samples to gen
    - Perplexity → Zhi4
    - (Backend LLM integrations remain unchanged)
 
-4. **Real Perplexity Integration**: Implemented actual Perplexity API integration using their sonar-pro model for both cognitive and psychological analysis (replaced previous placeholder implementation)
+4. **Real Perplexity Integration**: Implemented actual Perplexity API integration using their sonar-pro model for both cognitive and psychological analysis
+
+5. **Payment Integration**: 
+   - Stripe checkout for purchasing credit packages
+   - Five price tiers: $5, $10, $25, $50, $100
+   - Different word allocations per provider based on API costs
+   - Webhook handling for automatic credit fulfillment
 
 ## User Preferences
 
@@ -59,12 +69,27 @@ The backend uses Express.js as the API server with TypeScript and follows a modu
 
 The database uses Drizzle ORM with a PostgreSQL adapter and includes the following tables:
 
-1. `users` - For authentication and user management
+1. `users` - For authentication and credit tracking
    - id (PK)
    - username (unique)
    - password
+   - credits (legacy field)
+   - credits_zhi1 (word credits for DeepSeek)
+   - credits_zhi2 (word credits for OpenAI)
+   - credits_zhi3 (word credits for Anthropic)
+   - credits_zhi4 (word credits for Perplexity)
 
-2. `analysis_requests` - For storing text analysis data
+2. `transactions` - For payment tracking
+   - id (PK)
+   - user_id (FK to users)
+   - amount (payment amount in cents)
+   - credits (legacy field)
+   - credits_zhi1, credits_zhi2, credits_zhi3, credits_zhi4 (credits purchased)
+   - provider (single or multi-provider package)
+   - stripe_payment_intent_id
+   - status (pending/completed/failed)
+
+3. `analysis_requests` - For storing text analysis data
    - id (PK)
    - text (the submitted content)
    - result (the analysis results)
@@ -101,15 +126,29 @@ The database uses Drizzle ORM with a PostgreSQL adapter and includes the followi
 
 1. **Text Analysis Flow**:
    - User submits text through frontend
-   - Request goes to `/api/analyze-all` endpoint
+   - Request goes to `/api/analyze-all` endpoint (requires authentication)
    - Server validates the input (min 100 characters)
+   - Server calculates word count from text
+   - Server checks if user has sufficient credits for all providers
+   - If sufficient, server deducts credits before processing
    - Server forwards request to all AI providers in parallel (DeepSeek, OpenAI, Anthropic, Perplexity)
-   - Server receives analysis results from all providers and returns them to the client
-   - Client renders the analysis results from all providers
+   - Server receives analysis results and returns them with updated credit balances
+   - Client renders the analysis results and updates displayed credits
    - (Optional) Results can be stored in the database
 
-2. **Error Handling Flow**:
+2. **Payment Flow**:
+   - User clicks "Purchase Credits" button
+   - Frontend displays Stripe payment modal with package options
+   - User selects package and clicks checkout
+   - Frontend calls `/api/create-checkout` to create Stripe session
+   - User is redirected to Stripe checkout page
+   - After payment, Stripe sends webhook to `/api/webhook/stripe`
+   - Server validates webhook, updates transaction status, and adds credits to user account
+   - User is redirected back to app with updated credits
+
+3. **Error Handling Flow**:
    - Input validation errors trigger client-side feedback
+   - Insufficient credit errors (402 status) show specific provider info
    - API errors are caught and formatted for the client
    - Server-side errors are logged and graceful error responses are returned
 
@@ -164,6 +203,10 @@ The application requires the following environment variables:
 - `ANTHROPIC_API_KEY`: API key for Anthropic Claude services
 - `DEEPSEEK_API_KEY`: API key for DeepSeek services
 - `PERPLEXITY_API_KEY`: API key for Perplexity services
+- `STRIPE_SECRET_KEY`: Stripe secret key for payment processing
+- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key for frontend
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook secret for webhook verification
+- `STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER`: Alternative webhook secret
 - `NODE_ENV`: Environment setting (development/production)
 
 ## Development Workflow
