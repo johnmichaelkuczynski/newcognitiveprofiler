@@ -204,48 +204,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis endpoint - using all providers (requires authentication and credits)
+  // Analysis endpoint - using all providers (free for everyone)
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ 
-          message: 'Authentication required for full analysis',
-          requiresAuth: true
-        });
-      }
-
-      // Get user and check credits
-      const user = await getUserById(req.session.userId);
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-
-      const requiredCredits = 1; // Each analysis costs 1 credit
-      if (user.credits < requiredCredits) {
-        return res.status(402).json({ 
-          message: 'Insufficient credits for full analysis',
-          requiresPayment: true,
-          currentCredits: user.credits,
-          requiredCredits: requiredCredits
-        });
-      }
-
-      // Deduct credits
-      await deductUserCredits(req.session.userId, requiredCredits);
-      
       // Call all AI APIs and get combined results
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return all analysis results with updated credits
-      res.json({
-        ...analyses,
-        creditsUsed: requiredCredits,
-        remainingCredits: user.credits - requiredCredits
-      });
+      // Return all analysis results
+      res.json(analyses);
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       

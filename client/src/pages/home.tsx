@@ -4,34 +4,28 @@ import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
 import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
-import PreviewResultsSection from "@/components/PreviewResultsSection";
 import ErrorSection from "@/components/ErrorSection";
 import HelpModal from "@/components/HelpModal";
 import AuthModal from "@/components/AuthModal";
-import PaymentModal from "@/components/PaymentModal";
 import Footer from "@/components/Footer";
 import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { AnalysisType } from "@/types/analysis";
-import { AlertCircle, BrainCircuit, Heart, CreditCard, LogOut, User } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
   const [textSample, setTextSample] = useState("");
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
-  const [previewResult, setPreviewResult] = useState<any>(null);
   
   // Auth hook
-  const { user, isAuthenticated, login, logout, updateCredits } = useAuth();
+  const { user, isAuthenticated, login, logout } = useAuth();
   const { toast } = useToast();
   
   // Cognitive analysis hook
@@ -69,32 +63,11 @@ export default function Home() {
       return;
     }
     
-    // Clear previous results
-    setPreviewResult(null);
-    
-    if (isAuthenticated && user && user.credits > 0) {
-      // User is authenticated and has credits - do full analysis
-      if (analysisType === "cognitive") {
-        analyzeCognitiveText(textSample);
-      } else {
-        analyzePsychologicalText(textSample);
-      }
+    // Run full analysis for everyone
+    if (analysisType === "cognitive") {
+      analyzeCognitiveText(textSample);
     } else {
-      // User is not authenticated or has no credits - show preview
-      try {
-        const response = await apiRequest("POST", "/api/analyze-preview", {
-          text: textSample,
-          analysisType
-        });
-        const result = await response.json();
-        setPreviewResult(result);
-      } catch (error: any) {
-        toast({
-          title: "Analysis failed",
-          description: error.message || "Failed to analyze text",
-          variant: "destructive"
-        });
-      }
+      analyzePsychologicalText(textSample);
     }
   };
 
@@ -102,7 +75,6 @@ export default function Home() {
     // Reset both analysis types to ensure a clean state
     resetCognitive();
     resetPsychological();
-    setPreviewResult(null);
     
     // Clear the text input
     setTextSample("");
@@ -122,15 +94,7 @@ export default function Home() {
     login(userData);
     toast({
       title: "Welcome!",
-      description: `You now have ${userData.credits} credits available.`
-    });
-  };
-
-  const handlePaymentSuccess = (newCredits: number) => {
-    updateCredits(newCredits);
-    toast({
-      title: "Credits added!",
-      description: `You now have ${newCredits} credits available.`
+      description: `You're now logged in as ${userData.username}`
     });
   };
 
@@ -177,7 +141,6 @@ export default function Home() {
   const isError = analysisType === "cognitive" ? isCognitiveError : isPsychologicalError;
   const error = analysisType === "cognitive" ? cognitiveError : psychologicalError;
   const hasResult = analysisType === "cognitive" ? !!cognitiveResult : !!psychologicalResult;
-  const hasPreview = !!previewResult;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -196,25 +159,10 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="px-3 py-1">
-                    <CreditCard className="h-4 w-4 mr-1" />
-                    {user.credits} credits
-                  </Badge>
-                  <Badge variant="outline" className="px-3 py-1">
-                    <User className="h-4 w-4 mr-1" />
-                    {user.username}
-                  </Badge>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowPayment(true)}
-                  className="hidden sm:flex"
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Buy Credits
-                </Button>
+                <Badge variant="outline" className="px-3 py-1">
+                  <User className="h-4 w-4 mr-1" />
+                  {user.username}
+                </Badge>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -254,7 +202,7 @@ export default function Home() {
       </header>
 
       <main className="flex-grow container mx-auto px-4 py-6 sm:py-8 md:py-12">
-        {!isLoading && !hasResult && !hasPreview && !isError && (
+        {!isLoading && !hasResult && !isError && (
           <>
             <IntroSection 
               analysisType={analysisType}
@@ -277,18 +225,6 @@ export default function Home() {
         
         {!isLoading && !isError && (
           <>
-            {/* Preview Results */}
-            {hasPreview && (
-              <PreviewResultsSection 
-                result={previewResult}
-                onRegister={handleRegister}
-                onBuyCredits={() => setShowPayment(true)}
-                onNewAnalysis={handleReset}
-                userStatus={!isAuthenticated ? 'guest' : 'insufficient-credits'}
-              />
-            )}
-            
-            {/* Full Results */}
             {cognitiveResult && analysisType === "cognitive" && (
               <ResultsSection 
                 result={cognitiveResult} 
@@ -329,15 +265,6 @@ export default function Home() {
           onClose={() => setShowAuth(false)}
           onAuthSuccess={handleAuthSuccess}
           defaultTab={authTab}
-        />
-      )}
-      
-      {showPayment && isAuthenticated && user && (
-        <PaymentModal 
-          isOpen={showPayment}
-          onClose={() => setShowPayment(false)}
-          onPaymentSuccess={handlePaymentSuccess}
-          currentCredits={user.credits}
         />
       )}
     </div>
