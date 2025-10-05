@@ -20,6 +20,8 @@ The Cognitive Profiler is a web application that analyzes writing samples to gen
    - Perplexity → Zhi4
    - (Backend LLM integrations remain unchanged)
 
+4. **Real Perplexity Integration**: Implemented actual Perplexity API integration using their sonar-pro model for both cognitive and psychological analysis (replaced previous placeholder implementation)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -87,7 +89,11 @@ The database uses Drizzle ORM with a PostgreSQL adapter and includes the followi
 ### Server Components
 
 1. **API Routes**: RESTful endpoints for the frontend
-2. **OpenAI Integration**: Service for text analysis via OpenAI API
+2. **AI Provider Integrations**: Services for text analysis via multiple AI APIs:
+   - DeepSeek (deepseek-chat model)
+   - OpenAI (gpt-4o model)
+   - Anthropic (claude-sonnet-4 model)
+   - Perplexity (sonar-pro model, OpenAI-compatible)
 3. **Storage**: Data persistence layer with Drizzle ORM
 4. **Middleware**: Request processing, logging, error handling
 
@@ -95,11 +101,11 @@ The database uses Drizzle ORM with a PostgreSQL adapter and includes the followi
 
 1. **Text Analysis Flow**:
    - User submits text through frontend
-   - Request goes to `/api/analyze` endpoint
+   - Request goes to `/api/analyze-all` endpoint
    - Server validates the input (min 100 characters)
-   - Server forwards request to OpenAI API
-   - Server receives analysis results and returns them to the client
-   - Client renders the analysis results
+   - Server forwards request to all AI providers in parallel (DeepSeek, OpenAI, Anthropic, Perplexity)
+   - Server receives analysis results from all providers and returns them to the client
+   - Client renders the analysis results from all providers
    - (Optional) Results can be stored in the database
 
 2. **Error Handling Flow**:
@@ -121,7 +127,9 @@ The database uses Drizzle ORM with a PostgreSQL adapter and includes the followi
 ### Backend Dependencies
 
 - Express.js for API server
-- OpenAI SDK for AI analysis
+- OpenAI SDK for AI analysis (used for OpenAI and Perplexity)
+- Anthropic SDK for Claude analysis
+- DeepSeek API for cognitive profiling
 - Drizzle ORM for database operations
 - Zod for validation
 
@@ -153,6 +161,9 @@ The application is configured for deployment on Replit with automatic scaling:
 The application requires the following environment variables:
 - `DATABASE_URL`: Connection string for PostgreSQL database
 - `OPENAI_API_KEY`: API key for OpenAI services
+- `ANTHROPIC_API_KEY`: API key for Anthropic Claude services
+- `DEEPSEEK_API_KEY`: API key for DeepSeek services
+- `PERPLEXITY_API_KEY`: API key for Perplexity services
 - `NODE_ENV`: Environment setting (development/production)
 
 ## Development Workflow
