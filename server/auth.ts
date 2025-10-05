@@ -9,7 +9,11 @@ export interface AuthUser {
   id: number;
   username: string;
   email?: string;
-  credits: number;
+  credits: number; // Legacy field
+  credits_zhi1: number;
+  credits_zhi2: number;
+  credits_zhi3: number;
+  credits_zhi4: number;
 }
 
 export interface SessionData {
@@ -54,7 +58,11 @@ export async function registerUser(data: z.infer<typeof registerSchema>): Promis
     id: newUser[0].id,
     username: newUser[0].username,
     email: newUser[0].email || undefined,
-    credits: newUser[0].credits
+    credits: newUser[0].credits,
+    credits_zhi1: newUser[0].credits_zhi1,
+    credits_zhi2: newUser[0].credits_zhi2,
+    credits_zhi3: newUser[0].credits_zhi3,
+    credits_zhi4: newUser[0].credits_zhi4
   };
 }
 
@@ -77,7 +85,11 @@ export async function loginUser(username: string, password: string): Promise<Aut
         id: newUser[0].id,
         username: newUser[0].username,
         email: newUser[0].email || undefined,
-        credits: 999999
+        credits: 999999,
+        credits_zhi1: 999999,
+        credits_zhi2: 999999,
+        credits_zhi3: 999999,
+        credits_zhi4: 999999
       };
     }
     
@@ -86,7 +98,11 @@ export async function loginUser(username: string, password: string): Promise<Aut
       id: user[0].id,
       username: user[0].username,
       email: user[0].email || undefined,
-      credits: 999999
+      credits: 999999,
+      credits_zhi1: 999999,
+      credits_zhi2: 999999,
+      credits_zhi3: 999999,
+      credits_zhi4: 999999
     };
   }
   
@@ -106,7 +122,11 @@ export async function loginUser(username: string, password: string): Promise<Aut
     id: user[0].id,
     username: user[0].username,
     email: user[0].email || undefined,
-    credits: user[0].credits
+    credits: user[0].credits,
+    credits_zhi1: user[0].credits_zhi1,
+    credits_zhi2: user[0].credits_zhi2,
+    credits_zhi3: user[0].credits_zhi3,
+    credits_zhi4: user[0].credits_zhi4
   };
 }
 
@@ -117,13 +137,18 @@ export async function getUserById(id: number): Promise<AuthUser | null> {
   }
 
   // Special case for jmkuczynski - always unlimited credits
-  const credits = user[0].username.toLowerCase() === 'jmkuczynski' ? 999999 : user[0].credits;
+  const isAdmin = user[0].username.toLowerCase() === 'jmkuczynski';
+  const credits = isAdmin ? 999999 : user[0].credits;
 
   return {
     id: user[0].id,
     username: user[0].username,
     email: user[0].email || undefined,
-    credits: credits
+    credits: credits,
+    credits_zhi1: isAdmin ? 999999 : user[0].credits_zhi1,
+    credits_zhi2: isAdmin ? 999999 : user[0].credits_zhi2,
+    credits_zhi3: isAdmin ? 999999 : user[0].credits_zhi3,
+    credits_zhi4: isAdmin ? 999999 : user[0].credits_zhi4
   };
 }
 
@@ -144,4 +169,87 @@ export async function deductUserCredits(userId: number, creditsToDeduct: number)
     .where(eq(users.id, userId));
 
   return true;
+}
+
+// Calculate word count from text
+export function calculateWordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+}
+
+// Deduct provider-specific credits
+export async function deductProviderCredits(
+  userId: number, 
+  provider: 'zhi1' | 'zhi2' | 'zhi3' | 'zhi4', 
+  wordCount: number
+): Promise<{ success: boolean; remainingCredits?: number; error?: string }> {
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  
+  if (user.length === 0) {
+    return { success: false, error: 'User not found' };
+  }
+
+  // Special case for jmkuczynski - unlimited credits
+  if (user[0].username.toLowerCase() === 'jmkuczynski') {
+    return { success: true, remainingCredits: 999999 };
+  }
+
+  const creditField = `credits_${provider}` as const;
+  const currentCredits = user[0][creditField];
+
+  if (currentCredits < wordCount) {
+    return { 
+      success: false, 
+      error: `Insufficient credits for ${provider}. Need ${wordCount} words, have ${currentCredits}.` 
+    };
+  }
+
+  await db.update(users)
+    .set({ [creditField]: currentCredits - wordCount })
+    .where(eq(users.id, userId));
+
+  return { success: true, remainingCredits: currentCredits - wordCount };
+}
+
+// Check if user has sufficient credits for all providers
+export async function checkAllProvidersCredits(
+  userId: number,
+  wordCount: number
+): Promise<{ success: boolean; insufficientProviders?: string[]; credits?: Record<string, number> }> {
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  
+  if (user.length === 0) {
+    return { success: false };
+  }
+
+  // Special case for jmkuczynski - unlimited credits
+  if (user[0].username.toLowerCase() === 'jmkuczynski') {
+    return { 
+      success: true, 
+      credits: { 
+        zhi1: 999999, 
+        zhi2: 999999, 
+        zhi3: 999999, 
+        zhi4: 999999 
+      } 
+    };
+  }
+
+  const insufficientProviders: string[] = [];
+  const credits = {
+    zhi1: user[0].credits_zhi1,
+    zhi2: user[0].credits_zhi2,
+    zhi3: user[0].credits_zhi3,
+    zhi4: user[0].credits_zhi4
+  };
+
+  if (credits.zhi1 < wordCount) insufficientProviders.push('Zhi1');
+  if (credits.zhi2 < wordCount) insufficientProviders.push('Zhi2');
+  if (credits.zhi3 < wordCount) insufficientProviders.push('Zhi3');
+  if (credits.zhi4 < wordCount) insufficientProviders.push('Zhi4');
+
+  return {
+    success: insufficientProviders.length === 0,
+    insufficientProviders: insufficientProviders.length > 0 ? insufficientProviders : undefined,
+    credits
+  };
 }

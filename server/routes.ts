@@ -6,7 +6,7 @@ import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
 import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
-import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits } from "./auth";
+import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits, calculateWordCount, checkAllProvidersCredits, deductProviderCredits } from "./auth";
 import { createPayPalOrder, capturePayPalOrder, creditPackages, getUserCredits } from "./payments";
 import { createCheckoutSession, handleWebhook, stripeCreditPackages } from "./stripe";
 import multer from "multer";
@@ -254,17 +254,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis endpoint - using all providers (free for everyone)
-  app.post("/api/analyze-all", async (req, res) => {
+  // Analysis endpoint - using all providers (credit-based)
+  app.post("/api/analyze-all", requireAuth, async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
+      // Calculate word count
+      const wordCount = calculateWordCount(text);
+      
+      // Check if user has sufficient credits for all providers
+      const creditCheck = await checkAllProvidersCredits(req.session.userId!, wordCount);
+      
+      if (!creditCheck.success) {
+        return res.status(402).json({
+          message: `Insufficient credits. The following providers don't have enough: ${creditCheck.insufficientProviders?.join(', ')}`,
+          wordCount,
+          credits: creditCheck.credits,
+          insufficientProviders: creditCheck.insufficientProviders
+        });
+      }
+      
+      // Deduct credits for all providers before analysis
+      await Promise.all([
+        deductProviderCredits(req.session.userId!, 'zhi1', wordCount),
+        deductProviderCredits(req.session.userId!, 'zhi2', wordCount),
+        deductProviderCredits(req.session.userId!, 'zhi3', wordCount),
+        deductProviderCredits(req.session.userId!, 'zhi4', wordCount)
+      ]);
+      
       // Call all AI APIs and get combined results
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return all analysis results
-      res.json(analyses);
+      // Get updated user credits to return
+      const updatedUser = await getUserById(req.session.userId!);
+      
+      // Return all analysis results with updated credit balances
+      res.json({
+        ...analyses,
+        creditsUsed: wordCount,
+        remainingCredits: {
+          zhi1: updatedUser?.credits_zhi1 || 0,
+          zhi2: updatedUser?.credits_zhi2 || 0,
+          zhi3: updatedUser?.credits_zhi3 || 0,
+          zhi4: updatedUser?.credits_zhi4 || 0
+        }
+      });
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       
