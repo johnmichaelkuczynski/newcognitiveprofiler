@@ -4,6 +4,22 @@
 
 The Cognitive Profiler is a web application that analyzes writing samples to generate insights about the author's cognitive patterns, reasoning style, and estimated intelligence. The application uses an AI-powered text analysis system to process user submissions and provide detailed cognitive profiles.
 
+## Recent Changes (October 2025)
+
+1. **Paywall Removed**: All analysis features are now completely free for everyone. No authentication or credits required to use the full multi-provider analysis.
+
+2. **Special Admin Access**: Username "jmkuczynski" (case-insensitive) has special privileges:
+   - Can login without entering a password (password field is optional)
+   - Always displays 999,999 credits (unlimited)
+   - Account is auto-created on first login if it doesn't exist
+
+3. **Provider Rebranding**: AI provider names in the UI have been rebranded:
+   - DeepSeek → Zhi1
+   - OpenAI → Zhi2
+   - Anthropic → Zhi3
+   - Perplexity → Zhi4
+   - (Backend LLM integrations remain unchanged)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
