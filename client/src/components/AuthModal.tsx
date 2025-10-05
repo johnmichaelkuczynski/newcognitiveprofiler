@@ -47,6 +47,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
       
       onAuthSuccess(user);
       onClose();
+      resetForms();
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -57,6 +58,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
       setIsLoading(false);
     }
   };
+  
+  const isSpecialUser = loginData.username.toLowerCase() === 'jmkuczynski';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,13 +134,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, defaultTab =
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password">Password {isSpecialUser && "(optional for your account)"}</Label>
                     <Input
                       id="login-password"
                       type="password"
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      required
+                      required={!isSpecialUser}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
