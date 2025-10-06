@@ -100,9 +100,42 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
       description: "This may take a moment..."
     });
     
- provider);
+    // Generate the comprehensive report using the available text
+    generateReport(textToAnalyze, provider);
   };
   
+  // Copy results to clipboard
+  const copyResults = () => {
+    const provider = activeTab as ModelProvider;
+    if (!result[provider]) {
+      toast({
+        title: "Copy failed",
+        description: "No results available to copy",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    let resultsText = "PSYCHOLOGICAL PROFILE ANALYSIS\n\n";
+    try {
+      const providerResult = result[provider];
+      const providerName = providerInfo[provider]?.name || provider;
+      
+      resultsText += `${providerName} ANALYSIS:\n\n`;
+      
+      if (providerResult.emotionalProfile) {
+        resultsText += "EMOTIONAL PROFILE:\n";
+        resultsText += `Emotional Stability: ${providerResult.emotionalProfile.emotionalStability}/100\n`;
+        resultsText += `Primary Emotions: ${providerResult.emotionalProfile.primaryEmotions.join(', ')}\n`;
+        resultsText += `Analysis: ${providerResult.emotionalProfile.detailedAnalysis}\n\n`;
+      }
+      
+      if (providerResult.motivationalStructure) {
+        resultsText += "MOTIVATIONAL STRUCTURE:\n";
+        resultsText += `Primary Drives: ${providerResult.motivationalStructure.primaryDrives.join(', ')}\n`;
+        resultsText += `Motivational Patterns: ${providerResult.motivationalStructure.motivationalPatterns.join(', ')}\n`;
+        resultsText += `Analysis: ${providerResult.motivationalStructure.detailedAnalysis}\n\n`;
+      }
       
       if (providerResult.interpersonalDynamics) {
         resultsText += "INTERPERSONAL DYNAMICS:\n";
@@ -130,24 +163,15 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
         resultsText += "\nOVERALL SUMMARY:\n" + providerResult.overallSummary + "\n";
       }
       
-      navigator.clipboard.writeText(resultsText)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-          
-          toast({
-            title: "Results copied",
-            description: "Psychological profile has been copied to clipboard"
-          });
-        })
-        .catch((err) => {
-          console.error("Clipboard error:", err);
-          toast({
-            title: "Copy failed",
-            description: "Failed to copy results to clipboard",
-            variant: "destructive"
-          });
+      navigator.clipboard.writeText(resultsText).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        
+        toast({
+          title: "Results copied",
+          description: "Psychological profile has been copied to clipboard"
         });
+      });
     } catch (error) {
       console.error("Error copying results:", error);
       toast({
