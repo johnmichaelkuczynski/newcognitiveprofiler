@@ -9,6 +9,9 @@ import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComp
 import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits, calculateWordCount, checkAllProvidersCredits, deductProviderCredits } from "./auth";
 import { createPayPalOrder, capturePayPalOrder, creditPackages, getUserCredits } from "./payments";
 import { createCheckoutSession, handleWebhook, stripeCreditPackages } from "./stripe";
+import { db } from "./storage";
+import { transactions, users } from "../shared/schema";
+import { eq, sql } from "drizzle-orm";
 import multer from "multer";
 import { z } from "zod";
 import { ZodError } from "zod";
@@ -245,6 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhook handler
   app.post("/api/webhook/stripe", async (req, res) => {
+    console.log('🎯 Webhook received!');
     const signature = req.headers['stripe-signature'] as string;
     
     try {
@@ -252,15 +256,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER;
       
       if (!webhookSecret) {
+        console.error('❌ No webhook secret configured');
         throw new Error('No webhook secret configured');
       }
 
+      console.log('✅ Webhook secret found, processing...');
       const result = await handleWebhook(req.body, signature, webhookSecret);
+      console.log('✅ Webhook processed successfully:', result);
       
       res.json({ received: true, ...result });
     } catch (error) {
-      console.error('Webhook error:', error);
+      console.error('❌ Webhook error:', error);
       res.status(400).json({ message: error instanceof Error ? error.message : 'Webhook failed' });
+    }
+  });
+
+  // Manual recovery endpoint - complete pending transactions
+  app.post("/api/admin/complete-pending-transactions", async (req, res) => {
+    try {
+      const pendingTxns = await db.select().from(transactions).where(eq(transactions.status, 'pending'));
+      
+      let completed = 0;
+      for (const txn of pendingTxns) {
+        // Update transaction status
+        await db.update(transactions)
+          .set({ status: 'completed' })
+          .where(eq(transactions.id, txn.id));
+        
+        // Add credits to user
+        await db.update(users)
+          .set({
+            credits_zhi1: sql`credits_zhi1 + ${txn.credits_zhi1}`,
+            credits_zhi2: sql`credits_zhi2 + ${txn.credits_zhi2}`,
+            credits_zhi3: sql`credits_zhi3 + ${txn.credits_zhi3}`,
+            credits_zhi4: sql`credits_zhi4 + ${txn.credits_zhi4}`,
+          })
+          .where(eq(users.id, txn.user_id));
+        
+        completed++;
+        console.log(`✅ Completed transaction ${txn.id} for user ${txn.user_id}`);
+      }
+      
+      res.json({ message: `Completed ${completed} pending transactions` });
+    } catch (error) {
+      console.error('Error completing pending transactions:', error);
+      res.status(500).json({ message: 'Failed to complete transactions' });
     }
   });
 
