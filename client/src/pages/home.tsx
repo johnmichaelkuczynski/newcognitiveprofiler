@@ -71,18 +71,7 @@ export default function Home() {
       return;
     }
     
-    // Check if user is authenticated first
-    if (!isAuthenticated) {
-      toast({
-        title: "Login Required",
-        description: "Please log in or create an account to analyze text.",
-        variant: "destructive"
-      });
-      setShowAuth(true);
-      return;
-    }
-    
-    // Run full analysis for authenticated users
+    // Run full analysis for everyone - no authentication required
     if (analysisType === "cognitive") {
       analyzeCognitiveText(textSample);
     } else {
@@ -100,24 +89,13 @@ export default function Home() {
   };
 
   const handleSwitchAnalysisType = (text: string, newType: AnalysisType) => {
-    // Check if user is authenticated first
-    if (!isAuthenticated) {
-      toast({
-        title: "Login Required",
-        description: "Please log in or create an account to run additional analyses.",
-        variant: "destructive"
-      });
-      setShowAuth(true);
-      return;
-    }
-    
     // Switch to the new analysis type
     setAnalysisType(newType);
     
     // Store the text
     setTextSample(text);
     
-    // Run analysis with the new type
+    // Run analysis with the new type - no authentication required
     if (newType === "cognitive") {
       analyzeCognitiveText(text);
     } else {
@@ -168,18 +146,7 @@ export default function Home() {
       };
       reader.readAsText(file);
     } else if (fileExt === 'pdf' || fileExt === 'doc' || fileExt === 'docx') {
-      // Check if user is authenticated first
-      if (!isAuthenticated) {
-        toast({
-          title: "Login Required",
-          description: "Please log in or create an account to analyze documents.",
-          variant: "destructive"
-        });
-        setShowAuth(true);
-        return;
-      }
-      
-      // For PDF, Word documents - send directly to server for processing
+      // For PDF, Word documents - send directly to server for processing - no auth required
       if (analysisType === "cognitive") {
         analyzeCognitiveFile(file);
       } else {

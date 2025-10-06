@@ -292,52 +292,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis endpoint - using all providers (credit-based)
-  app.post("/api/analyze-all", requireAuth, async (req, res) => {
+  // Analysis endpoint - using all providers (FREE - no auth required)
+  app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Calculate word count
-      const wordCount = calculateWordCount(text);
-      
-      // Check if user has sufficient credits for all providers
-      const creditCheck = await checkAllProvidersCredits(req.session.userId!, wordCount);
-      
-      if (!creditCheck.success) {
-        return res.status(402).json({
-          message: `Insufficient credits. The following providers don't have enough: ${creditCheck.insufficientProviders?.join(', ')}`,
-          wordCount,
-          credits: creditCheck.credits,
-          insufficientProviders: creditCheck.insufficientProviders
-        });
-      }
-      
-      // Deduct credits for all providers before analysis
-      await Promise.all([
-        deductProviderCredits(req.session.userId!, 'zhi1', wordCount),
-        deductProviderCredits(req.session.userId!, 'zhi2', wordCount),
-        deductProviderCredits(req.session.userId!, 'zhi3', wordCount),
-        deductProviderCredits(req.session.userId!, 'zhi4', wordCount)
-      ]);
-      
-      // Call all AI APIs and get combined results
+      // Call all AI APIs and get combined results - no credit checks
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Get updated user credits to return
-      const updatedUser = await getUserById(req.session.userId!);
-      
-      // Return all analysis results with updated credit balances
-      res.json({
-        ...analyses,
-        creditsUsed: wordCount,
-        remainingCredits: {
-          zhi1: updatedUser?.credits_zhi1 || 0,
-          zhi2: updatedUser?.credits_zhi2 || 0,
-          zhi3: updatedUser?.credits_zhi3 || 0,
-          zhi4: updatedUser?.credits_zhi4 || 0
-        }
-      });
+      // Return all analysis results
+      res.json(analyses);
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       
@@ -382,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File upload endpoint for document analysis with all providers
-  app.post("/api/upload-document-all", requireAuth, upload.single('file'), async (req, res) => {
+  app.post("/api/upload-document-all", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -401,46 +366,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Calculate word count
-      const wordCount = calculateWordCount(extractedText);
-      
-      // Check if user has sufficient credits for all providers
-      const creditCheck = await checkAllProvidersCredits(req.session.userId!, wordCount);
-      
-      if (!creditCheck.success) {
-        return res.status(402).json({
-          message: `Insufficient credits. The following providers don't have enough: ${creditCheck.insufficientProviders?.join(', ')}`,
-          wordCount,
-          credits: creditCheck.credits,
-          insufficientProviders: creditCheck.insufficientProviders
-        });
-      }
-      
-      // Deduct credits for all providers before analysis
-      await Promise.all([
-        deductProviderCredits(req.session.userId!, 'zhi1', wordCount),
-        deductProviderCredits(req.session.userId!, 'zhi2', wordCount),
-        deductProviderCredits(req.session.userId!, 'zhi3', wordCount),
-        deductProviderCredits(req.session.userId!, 'zhi4', wordCount)
-      ]);
-      
-      // Analyze the extracted text using all AI providers
+      // Analyze the extracted text using all AI providers - no credit checks
       const analyses = await analyzeTextWithAllProviders(extractedText, analysisType);
       
-      // Get updated user credits to return
-      const updatedUser = await getUserById(req.session.userId!);
-      
-      // Return all analysis results with updated credit balances
-      res.json({
-        ...analyses,
-        creditsUsed: wordCount,
-        remainingCredits: {
-          zhi1: updatedUser?.credits_zhi1 || 0,
-          zhi2: updatedUser?.credits_zhi2 || 0,
-          zhi3: updatedUser?.credits_zhi3 || 0,
-          zhi4: updatedUser?.credits_zhi4 || 0
-        }
-      });
+      // Return all analysis results
+      res.json(analyses);
     } catch (error) {
       console.error(`Error processing document with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       const errorMessage = error instanceof Error ? error.message : "Failed to process document. Please try again.";
