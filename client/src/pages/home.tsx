@@ -14,7 +14,7 @@ import { useCognitiveAnalysis } from "@/hooks/useCognitiveAnalysis";
 import { usePsychologicalAnalysis } from "@/hooks/usePsychologicalAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { AnalysisType } from "@/types/analysis";
-import { AlertCircle, LogOut, User } from "lucide-react";
+import { AlertCircle, LogOut, User, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -130,6 +130,22 @@ export default function Home() {
     });
   };
 
+  const handlePurchaseCredits = () => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please log in or create an account to purchase credits.",
+      });
+      setAuthTab("login");
+      setShowAuth(true);
+      return;
+    }
+    
+    // User is authenticated, show payment modal
+    setShowPayment(true);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -203,6 +219,14 @@ export default function Home() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={handlePurchaseCredits}
+                >
+                  <Coins className="h-4 w-4 mr-1" />
+                  Purchase Credits
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={handleLogin}
                 >
                   Login
@@ -237,7 +261,7 @@ export default function Home() {
               zhi3: user.credits_zhi3,
               zhi4: user.credits_zhi4
             }}
-            onPurchaseClick={() => setShowPayment(true)}
+            onPurchaseClick={handlePurchaseCredits}
             className="mb-6"
           />
         )}
