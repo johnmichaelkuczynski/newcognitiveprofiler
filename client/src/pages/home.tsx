@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import IntroSection from "@/components/IntroSection";
 import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
@@ -57,6 +57,29 @@ export default function Home() {
     data: psychologicalResult,
     reset: resetPsychological
   } = usePsychologicalAnalysis(handleCreditsUpdate);
+
+  // Check for payment status in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    
+    if (paymentStatus === 'success') {
+      toast({
+        title: "Payment Successful!",
+        description: "Your credits have been added to your account.",
+      });
+      // Clean up the URL
+      window.history.replaceState({}, '', '/');
+    } else if (paymentStatus === 'cancel') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. No charges were made.",
+        variant: "destructive",
+      });
+      // Clean up the URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, [toast]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextSample(e.target.value);

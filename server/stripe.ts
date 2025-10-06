@@ -8,7 +8,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-09-30.clover',
 });
 
 export interface StripeCreditPackage {
@@ -74,6 +74,14 @@ export async function createCheckoutSession(
   
   const totalWords = Object.values(creditsObj).reduce((sum, val) => sum + val, 0);
 
+  // Determine the base URL for redirects
+  // Use custom domain if in production, otherwise use Replit dev domain
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+    ? process.env.REPLIT_DEV_DOMAIN.startsWith('http') 
+      ? process.env.REPLIT_DEV_DOMAIN 
+      : `https://${process.env.REPLIT_DEV_DOMAIN}`
+    : 'https://cognitiveprofiler.xyz';
+
   // Create Stripe checkout session
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -91,8 +99,8 @@ export async function createCheckoutSession(
       },
     ],
     mode: 'payment',
-    success_url: `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/?payment=success`,
-    cancel_url: `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/?payment=cancel`,
+    success_url: `${baseUrl}/?payment=success`,
+    cancel_url: `${baseUrl}/?payment=cancel`,
     metadata: {
       userId: userId.toString(),
       price: price.toString(),
