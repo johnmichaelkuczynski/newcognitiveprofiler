@@ -461,9 +461,9 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                           <SelectValue placeholder="Select Provider" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="openai">OpenAI</SelectItem>
-                          <SelectItem value="anthropic">Anthropic</SelectItem>
-                          <SelectItem value="perplexity">Perplexity</SelectItem>
+                          <SelectItem value="openai">Zhi2</SelectItem>
+                          <SelectItem value="anthropic">Zhi3</SelectItem>
+                          <SelectItem value="perplexity">Zhi4</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -529,9 +529,9 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
                           <SelectValue placeholder="Select Provider" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="openai">OpenAI</SelectItem>
-                          <SelectItem value="anthropic">Anthropic</SelectItem>
-                          <SelectItem value="perplexity">Perplexity</SelectItem>
+                          <SelectItem value="openai">Zhi2</SelectItem>
+                          <SelectItem value="anthropic">Zhi3</SelectItem>
+                          <SelectItem value="perplexity">Zhi4</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
