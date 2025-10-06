@@ -251,45 +251,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhook handler is now in server/index.ts (needs to be before express.json())
 
-  // Manual recovery endpoint - complete pending transactions
-  app.post("/api/admin/complete-pending-transactions", async (req, res) => {
-    try {
-      const pendingTxns = await db.select().from(transactions).where(eq(transactions.status, 'pending'));
-      
-      let completed = 0;
-      for (const txn of pendingTxns) {
-        // Update transaction status
-        await db.update(transactions)
-          .set({ status: 'completed' })
-          .where(eq(transactions.id, txn.id));
-        
-        // Add credits to user using raw SQL to avoid circular reference
-        const creditsToAdd = {
-          zhi1: txn.credits_zhi1 || 0,
-          zhi2: txn.credits_zhi2 || 0,
-          zhi3: txn.credits_zhi3 || 0,
-          zhi4: txn.credits_zhi4 || 0
-        };
-        await db.update(users)
-          .set({
-            credits_zhi1: sql`credits_zhi1 + ${creditsToAdd.zhi1}`,
-            credits_zhi2: sql`credits_zhi2 + ${creditsToAdd.zhi2}`,
-            credits_zhi3: sql`credits_zhi3 + ${creditsToAdd.zhi3}`,
-            credits_zhi4: sql`credits_zhi4 + ${creditsToAdd.zhi4}`,
-          })
-          .where(eq(users.id, txn.user_id));
-        
-        completed++;
-        console.log(`✅ Completed transaction ${txn.id} for user ${txn.user_id}`);
-      }
-      
-      res.json({ message: `Completed ${completed} pending transactions` });
-    } catch (error) {
-      console.error('Error completing pending transactions:', error);
-      res.status(500).json({ message: 'Failed to complete transactions' });
-    }
-  });
-
   // Preview analysis endpoint - for unregistered users (limited results)
   app.post("/api/analyze-preview", async (req, res) => {
     try {
