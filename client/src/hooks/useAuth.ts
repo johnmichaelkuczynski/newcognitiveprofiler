@@ -74,7 +74,14 @@ export function useAuth() {
   };
 
   const refetchUser = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+    try {
+      const response = await apiRequest('GET', '/api/me');
+      const userData = await response.json();
+      setUser(userData);
+      queryClient.setQueryData(['/api/me'], userData);
+    } catch (error) {
+      console.error('Error refetching user:', error);
+    }
   };
 
   return {
