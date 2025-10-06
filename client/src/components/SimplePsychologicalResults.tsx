@@ -38,9 +38,10 @@ const providerInfo = {
 interface SimplePsychologicalResultsProps {
   result: MultiProviderPsychologicalResult;
   onNewAnalysis: () => void;
+  onSwitchAnalysisType?: (text: string) => void;
 }
 
-export default function SimplePsychologicalResults({ result, onNewAnalysis }: SimplePsychologicalResultsProps) {
+export default function SimplePsychologicalResults({ result, onNewAnalysis, onSwitchAnalysisType }: SimplePsychologicalResultsProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   
@@ -228,11 +229,26 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis }: Si
             {isGenerating ? "Generating..." : "Full Report"}
           </Button>
           
+          {/* Switch to Cognitive Analysis button */}
+          {onSwitchAnalysisType && result.originalText && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSwitchAnalysisType(result.originalText!)}
+              className="ml-auto bg-white/10 hover:bg-white/20 text-white border-white/20"
+              data-testid="button-switch-cognitive"
+            >
+              <BrainCircuit className="h-4 w-4 mr-1" />
+              Run Cognitive
+            </Button>
+          )}
+          
           <Button
             variant="outline"
             size="sm"
             onClick={onNewAnalysis}
-            className="ml-auto bg-white/10 hover:bg-white/20 text-white border-white/20"
+            className={`bg-white/10 hover:bg-white/20 text-white border-white/20 ${!(onSwitchAnalysisType && result.originalText) ? 'ml-auto' : ''}`}
+            data-testid="button-new-analysis"
           >
             <RefreshCw className="h-4 w-4 mr-1" />
             New Analysis

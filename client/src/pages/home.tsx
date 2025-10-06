@@ -88,6 +88,21 @@ export default function Home() {
     setTextSample("");
   };
 
+  const handleSwitchAnalysisType = (text: string, newType: AnalysisType) => {
+    // Switch to the new analysis type
+    setAnalysisType(newType);
+    
+    // Store the text
+    setTextSample(text);
+    
+    // Run analysis with the new type
+    if (newType === "cognitive") {
+      analyzeCognitiveText(text);
+    } else {
+      analyzePsychologicalText(text);
+    }
+  };
+
   const handleRegister = () => {
     setAuthTab("register");
     setShowAuth(true);
@@ -251,6 +266,7 @@ export default function Home() {
               <ResultsSection 
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
+                onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "psychological")}
               />
             )}
             
@@ -258,6 +274,7 @@ export default function Home() {
               <SimplePsychologicalResults 
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
+                onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "cognitive")}
               />
             )}
           </>

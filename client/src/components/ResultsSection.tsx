@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen } from "lucide-react";
+import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -132,9 +132,10 @@ function CognitiveProfileCard({
 interface ResultsSectionProps {
   result: MultiProviderAnalysisResult;
   onNewAnalysis: () => void;
+  onSwitchAnalysisType?: (text: string) => void;
 }
 
-export default function ResultsSection({ result, onNewAnalysis }: ResultsSectionProps) {
+export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysisType }: ResultsSectionProps) {
   const [activeTab, setActiveTab] = useState("all-profiles");
   const [copied, setCopied] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
@@ -385,16 +386,33 @@ export default function ResultsSection({ result, onNewAnalysis }: ResultsSection
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <h2 className="font-heading font-semibold text-xl text-white">Multi-Provider Cognitive Profile</h2>
             
-            {/* New Analysis button at the top */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onNewAnalysis()}
-              className="bg-white text-secondary hover:bg-white/90 border-white/20 font-medium"
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              New Analysis
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              {/* Switch to Psychological Analysis button */}
+              {onSwitchAnalysisType && result.originalText && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSwitchAnalysisType(result.originalText!)}
+                  className="bg-white text-secondary hover:bg-white/90 border-white/20 font-medium"
+                  data-testid="button-switch-psychological"
+                >
+                  <Heart className="h-4 w-4 mr-1" />
+                  Run Psychological
+                </Button>
+              )}
+              
+              {/* New Analysis button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onNewAnalysis()}
+                className="bg-white text-secondary hover:bg-white/90 border-white/20 font-medium"
+                data-testid="button-new-analysis"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                New Analysis
+              </Button>
+            </div>
           </div>
           
           <div className="flex flex-wrap gap-2">
