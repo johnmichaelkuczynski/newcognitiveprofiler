@@ -100,8 +100,7 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
       description: "This may take a moment..."
     });
     
-    // Generate the comprehensive report using the available text
-    generateReport(textToAnalyze, provider);
+ provider);
   };
   
       
