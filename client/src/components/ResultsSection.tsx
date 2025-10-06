@@ -649,11 +649,12 @@ export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysis
           <div>
             <h3 className="font-heading text-lg mb-4">Individual Provider Analyses</h3>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-1 sm:grid-cols-4">
+              <TabsList className="grid grid-cols-1 sm:grid-cols-5">
                 <TabsTrigger value="all-profiles">All Profiles</TabsTrigger>
-                <TabsTrigger value="openai">OpenAI</TabsTrigger>
-                <TabsTrigger value="anthropic">Anthropic</TabsTrigger>
-                <TabsTrigger value="perplexity">Perplexity</TabsTrigger>
+                <TabsTrigger value="deepseek">Zhi1</TabsTrigger>
+                <TabsTrigger value="openai">Zhi2</TabsTrigger>
+                <TabsTrigger value="anthropic">Zhi3</TabsTrigger>
+                <TabsTrigger value="perplexity">Zhi4</TabsTrigger>
               </TabsList>
               
               <TabsContent value="all-profiles" className="space-y-4 mt-4">
