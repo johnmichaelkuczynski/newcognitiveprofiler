@@ -252,4 +252,27 @@ export async function checkAllProvidersCredits(
     insufficientProviders: insufficientProviders.length > 0 ? insufficientProviders : undefined,
     credits
   };
-}
+} 
+import express from 'express';
+export const authRouter = express.Router();
+
+// ...existing functions above...
+
+// ✅ Add this near the bottom of server/auth.ts
+authRouter.get('/me', async (req, res) => {
+  try {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: 'Not logged in' });
+    }
+
+    const user = await getUserById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Error fetching user data:', err);
+    res.status(500).json({ error: 'Failed to fetch user info' });
+  }
+});
