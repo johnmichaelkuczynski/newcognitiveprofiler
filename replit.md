@@ -32,6 +32,13 @@ The Mind Profiler is a web application that analyzes writing samples to generate
    - Different word allocations per provider based on API costs
    - Webhook handling for automatic credit fulfillment
 
+6. **CORS and Session Configuration for Cross-Origin Support**:
+   - Configured CORS to allow credentials from Replit domain and custom domain (cognitiveprofiler.xyz)
+   - Set `trust proxy: 1` for proper HTTPS detection behind Replit's proxy
+   - Updated session cookies with `secure: true` and `sameSite: "none"` for cross-origin requests
+   - Frontend API client configured with `credentials: "include"` for all requests
+   - Ensures session persistence across frontend and backend for authenticated features
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

@@ -1,8 +1,25 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Trust proxy for Replit HTTPS
+app.set("trust proxy", 1);
+
+// CORS configuration
+const allowedOrigins = [
+  "https://3-cognitive-profiler-johnmichaelkucz.replit.app",
+  "https://cognitiveprofiler.xyz",
+  "http://localhost:5000",
+  process.env.REPLIT_DEV_DOMAIN
+].filter((origin): origin is string => Boolean(origin));
+
+app.use(cors({
+  origin: process.env.NODE_ENV === 'development' ? true : allowedOrigins,
+  credentials: true,
+}));
 
 // Stripe webhook needs raw body, so we need to handle it before parsing
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res, next) => {
