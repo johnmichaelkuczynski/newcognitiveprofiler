@@ -73,6 +73,10 @@ export function useAuth() {
     }
   };
 
+  const refetchUser = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+  };
+
   return {
     user,
     isLoading,
@@ -80,6 +84,7 @@ export function useAuth() {
     login,
     logout,
     updateCredits,
-    updateAllCredits
+    updateAllCredits,
+    refetchUser
   };
 }

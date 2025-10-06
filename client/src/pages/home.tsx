@@ -28,7 +28,7 @@ export default function Home() {
   const [analysisType, setAnalysisType] = useState<AnalysisType>("cognitive");
   
   // Auth hook
-  const { user, isAuthenticated, login, logout, updateAllCredits } = useAuth();
+  const { user, isAuthenticated, login, logout, updateAllCredits, refetchUser } = useAuth();
   const { toast } = useToast();
   
   // Credit update handler
@@ -64,6 +64,8 @@ export default function Home() {
     const paymentStatus = params.get('payment');
     
     if (paymentStatus === 'success') {
+      // Refetch user data to get updated credits
+      refetchUser();
       toast({
         title: "Payment Successful!",
         description: "Your credits have been added to your account.",
@@ -79,7 +81,7 @@ export default function Home() {
       // Clean up the URL
       window.history.replaceState({}, '', '/');
     }
-  }, [toast]);
+  }, [toast, refetchUser]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextSample(e.target.value);
