@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, Copy, Check, BookOpen, Layers } from "lucide-react";
+import { RefreshCw, Heart, BrainCircuit, Users, Lightbulb, Download, Copy, Check, BookOpen, Layers, FileText, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 import { useComprehensivePsychologicalReport } from "@/hooks/useComprehensivePsychologicalReport";
 import ComprehensivePsychologicalReportModal from "@/components/ComprehensivePsychologicalReportModal";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest } from "@/lib/queryClient";
 
 // Provider information for display
 const providerInfo = {
@@ -44,6 +57,12 @@ interface SimplePsychologicalResultsProps {
 export default function SimplePsychologicalResults({ result, onNewAnalysis, onSwitchAnalysisType }: SimplePsychologicalResultsProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
+  const [documentFormat, setDocumentFormat] = useState<"pdf" | "docx">("pdf");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [senderName, setSenderName] = useState("");
   
   // Get valid providers (excluding originalText)
   const validProviders = Object.keys(result).filter(key => 
@@ -104,8 +123,8 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
     generateReport(textToAnalyze, provider);
   };
   
-  // Copy results to clipboard
-  const copyResults = () => {
+  // Copy results to clipboard with fallback
+  const copyResults = async () => {
     const provider = activeTab as ModelProvider;
     if (!result[provider]) {
       toast({
@@ -150,27 +169,42 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
         providerResult.strengths.forEach(strength => {
           resultsText += `- ${strength}\n`;
         });
+        resultsText += "\n";
       }
       
       if (providerResult.challenges && providerResult.challenges.length > 0) {
-        resultsText += "\nGROWTH AREAS:\n";
+        resultsText += "GROWTH AREAS:\n";
         providerResult.challenges.forEach(challenge => {
           resultsText += `- ${challenge}\n`;
         });
+        resultsText += "\n";
       }
       
       if (providerResult.overallSummary) {
-        resultsText += "\nOVERALL SUMMARY:\n" + providerResult.overallSummary + "\n";
+        resultsText += "OVERALL SUMMARY:\n" + providerResult.overallSummary + "\n";
       }
       
-      navigator.clipboard.writeText(resultsText).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        
-        toast({
-          title: "Results copied",
-          description: "Psychological profile has been copied to clipboard"
-        });
+      // Try modern clipboard API first, then fallback to older method
+      try {
+        await navigator.clipboard.writeText(resultsText);
+      } catch (clipboardError) {
+        // Fallback: create a temporary textarea
+        const textarea = document.createElement('textarea');
+        textarea.value = resultsText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      
+      toast({
+        title: "Results copied",
+        description: "Psychological profile has been copied to clipboard"
       });
     } catch (error) {
       console.error("Error copying results:", error);
@@ -179,6 +213,173 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
         description: "Failed to copy results to clipboard",
         variant: "destructive"
       });
+    }
+  };
+  
+  // Download results as text file
+  const downloadResults = () => {
+    const provider = activeTab as ModelProvider;
+    if (!result[provider]) {
+      toast({
+        title: "Download failed",
+        description: "No results available to download",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    let resultsText = "PSYCHOLOGICAL PROFILE ANALYSIS\n\n";
+    const providerResult = result[provider];
+    const providerName = providerInfo[provider]?.name || provider;
+    
+    resultsText += `${providerName} ANALYSIS:\n\n`;
+    
+    if (providerResult.emotionalProfile) {
+      resultsText += "EMOTIONAL PROFILE:\n";
+      resultsText += `Emotional Stability: ${providerResult.emotionalProfile.emotionalStability}/100\n`;
+      resultsText += `Primary Emotions: ${providerResult.emotionalProfile.primaryEmotions.join(', ')}\n`;
+      resultsText += `Analysis: ${providerResult.emotionalProfile.detailedAnalysis}\n\n`;
+    }
+    
+    if (providerResult.motivationalStructure) {
+      resultsText += "MOTIVATIONAL STRUCTURE:\n";
+      resultsText += `Primary Drives: ${providerResult.motivationalStructure.primaryDrives.join(', ')}\n`;
+      resultsText += `Motivational Patterns: ${providerResult.motivationalStructure.motivationalPatterns.join(', ')}\n`;
+      resultsText += `Analysis: ${providerResult.motivationalStructure.detailedAnalysis}\n\n`;
+    }
+    
+    if (providerResult.interpersonalDynamics) {
+      resultsText += "INTERPERSONAL DYNAMICS:\n";
+      resultsText += `Attachment Style: ${providerResult.interpersonalDynamics.attachmentStyle}\n`;
+      resultsText += `Social Orientations: ${providerResult.interpersonalDynamics.socialOrientations.join(', ')}\n`;
+      resultsText += `Relationship Patterns: ${providerResult.interpersonalDynamics.relationshipPatterns.join(', ')}\n`;
+      resultsText += `Analysis: ${providerResult.interpersonalDynamics.detailedAnalysis}\n\n`;
+    }
+    
+    if (providerResult.strengths && providerResult.strengths.length > 0) {
+      resultsText += "PSYCHOLOGICAL STRENGTHS:\n";
+      providerResult.strengths.forEach(strength => {
+        resultsText += `- ${strength}\n`;
+      });
+      resultsText += "\n";
+    }
+    
+    if (providerResult.challenges && providerResult.challenges.length > 0) {
+      resultsText += "GROWTH AREAS:\n";
+      providerResult.challenges.forEach(challenge => {
+        resultsText += `- ${challenge}\n`;
+      });
+      resultsText += "\n";
+    }
+    
+    if (providerResult.overallSummary) {
+      resultsText += "OVERALL SUMMARY:\n" + providerResult.overallSummary + "\n";
+    }
+    
+    // Create blob and download
+    const blob = new Blob([resultsText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'psychological-analysis.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  // Handle exporting document
+  const exportDocument = async () => {
+    try {
+      setIsExporting(true);
+      
+      const selectedResult = result[selectedProvider];
+      if (!selectedResult) {
+        throw new Error(`No analysis results found for ${selectedProvider}`);
+      }
+      
+      const requestData = {
+        provider: selectedProvider,
+        format: documentFormat,
+        analysis: selectedResult,
+      };
+      
+      const response = await apiRequest("POST", "/api/export-psychological-document", requestData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to export document");
+      }
+      
+      const blob = await response.blob();
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `psychological-analysis.${documentFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Document exported",
+        description: `Psychological profile exported as ${documentFormat.toUpperCase()} successfully.`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export document. Please try again.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  // Handle sharing via email
+  const shareViaEmail = async () => {
+    try {
+      setIsSharing(true);
+      
+      if (!recipientEmail) {
+        throw new Error("Please provide a recipient email address");
+      }
+      
+      const selectedResult = result[selectedProvider];
+      if (!selectedResult) {
+        throw new Error(`No analysis results found for ${selectedProvider}`);
+      }
+      
+      const requestData = {
+        provider: selectedProvider,
+        format: documentFormat,
+        analysis: selectedResult,
+        recipientEmail,
+        senderName: senderName || undefined,
+      };
+      
+      const response = await apiRequest("POST", "/api/share-psychological-via-email", requestData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to send email");
+      }
+      
+      toast({
+        title: "Email sent",
+        description: `Psychological profile shared with ${recipientEmail} successfully.`,
+      });
+    } catch (error) {
+      console.error('Error sharing via email:', error);
+      toast({
+        variant: "destructive",
+        title: "Sharing failed",
+        description: error instanceof Error ? error.message : "Failed to share via email. Please try again.",
+      });
+    } finally {
+      setIsSharing(false);
     }
   };
   
@@ -222,12 +423,186 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
             variant="secondary"
             size="sm"
             className="bg-white/10 hover:bg-white/20 text-white"
+            onClick={downloadResults}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Text
+          </Button>
+          
+          <Button
+            variant="secondary"
+            size="sm"
+            className="bg-white/10 hover:bg-white/20 text-white"
             onClick={() => handleFullReport(activeTab as ModelProvider)}
             disabled={isGenerating}
           >
             <BookOpen className="h-4 w-4 mr-1" />
             {isGenerating ? "Generating..." : "Full Report"}
           </Button>
+          
+          {/* Export document dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white/10 hover:bg-white/20 text-white"
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                Export
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Export Analysis</DialogTitle>
+                <DialogDescription>
+                  Export your psychological analysis as a document.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="provider" className="text-right">
+                    Provider
+                  </Label>
+                  <Select
+                    value={selectedProvider}
+                    onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select Provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="deepseek">Zhi1</SelectItem>
+                      <SelectItem value="openai">Zhi2</SelectItem>
+                      <SelectItem value="anthropic">Zhi3</SelectItem>
+                      <SelectItem value="perplexity">Zhi4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="format" className="text-right">
+                    Format
+                  </Label>
+                  <Select
+                    value={documentFormat}
+                    onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF Document</SelectItem>
+                      <SelectItem value="docx">Word Document</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  type="submit" 
+                  onClick={exportDocument}
+                  disabled={isExporting}
+                >
+                  {isExporting ? "Exporting..." : `Export as ${documentFormat.toUpperCase()}`}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Email sharing dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white/10 hover:bg-white/20 text-white"
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Share
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Share Analysis</DialogTitle>
+                <DialogDescription>
+                  Share your psychological analysis via email.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="provider" className="text-right">
+                    Provider
+                  </Label>
+                  <Select
+                    value={selectedProvider}
+                    onValueChange={(value) => setSelectedProvider(value as ModelProvider)}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select Provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="deepseek">Zhi1</SelectItem>
+                      <SelectItem value="openai">Zhi2</SelectItem>
+                      <SelectItem value="anthropic">Zhi3</SelectItem>
+                      <SelectItem value="perplexity">Zhi4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="recipient@example.com"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="senderName" className="text-right">
+                    Your Name
+                  </Label>
+                  <Input
+                    id="senderName"
+                    type="text"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="Optional"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="format" className="text-right">
+                    Format
+                  </Label>
+                  <Select
+                    value={documentFormat}
+                    onValueChange={(value) => setDocumentFormat(value as "pdf" | "docx")}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF Document</SelectItem>
+                      <SelectItem value="docx">Word Document</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  type="submit" 
+                  onClick={shareViaEmail}
+                  disabled={isSharing}
+                >
+                  {isSharing ? "Sending..." : "Send Email"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           
           {/* Switch to Cognitive Analysis button */}
           {onSwitchAnalysisType && result.originalText && (
