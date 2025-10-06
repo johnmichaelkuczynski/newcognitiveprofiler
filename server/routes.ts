@@ -249,30 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe webhook handler
-  app.post("/api/webhook/stripe", async (req, res) => {
-    console.log('🎯 Webhook received!');
-    const signature = req.headers['stripe-signature'] as string;
-    
-    try {
-      // Use the correct webhook secret for this deployment
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER;
-      
-      if (!webhookSecret) {
-        console.error('❌ No webhook secret configured');
-        throw new Error('No webhook secret configured');
-      }
-
-      console.log('✅ Webhook secret found, processing...');
-      const result = await handleWebhook(req.body, signature, webhookSecret);
-      console.log('✅ Webhook processed successfully:', result);
-      
-      res.json({ received: true, ...result });
-    } catch (error) {
-      console.error('❌ Webhook error:', error);
-      res.status(400).json({ message: error instanceof Error ? error.message : 'Webhook failed' });
-    }
-  });
+  // Stripe webhook handler is now in server/index.ts (needs to be before express.json())
 
   // Manual recovery endpoint - complete pending transactions
   app.post("/api/admin/complete-pending-transactions", async (req, res) => {

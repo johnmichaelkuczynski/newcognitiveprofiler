@@ -21,9 +21,32 @@ app.use(cors({
   credentials: true,
 }));
 
-// Stripe webhook needs raw body, so we need to handle it before parsing
-app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res, next) => {
-  next();
+// Stripe webhook needs raw body - must be defined BEFORE express.json()
+// This will be the actual handler, moved from routes.ts
+app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  // Import handleWebhook dynamically to avoid circular dependencies
+  const { handleWebhook } = await import('./stripe');
+  
+  console.log('🎯 Webhook received!');
+  const signature = req.headers['stripe-signature'] as string;
+  
+  try {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER;
+    
+    if (!webhookSecret) {
+      console.error('❌ No webhook secret configured');
+      return res.status(500).json({ error: 'No webhook secret configured' });
+    }
+
+    console.log('✅ Webhook secret found, processing...');
+    const result = await handleWebhook(req.body, signature, webhookSecret);
+    console.log('✅ Webhook processed successfully:', result);
+    
+    res.json({ received: true, ...result });
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Webhook failed' });
+  }
 });
 
 app.use(express.json());
