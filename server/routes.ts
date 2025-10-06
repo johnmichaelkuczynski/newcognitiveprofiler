@@ -237,8 +237,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No packages found for this price' });
       }
       
+      // Get origin from request headers to ensure Stripe redirects back to same domain
+      const origin = req.headers.origin || req.headers.referer?.split('?')[0].replace(/\/$/, '') || undefined;
+      
       // Use the first matching package to create a multi-provider session
-      const sessionUrl = await createCheckoutSession(req.session.userId, price, matchingPackages);
+      const sessionUrl = await createCheckoutSession(req.session.userId, price, matchingPackages, origin);
       res.json({ url: sessionUrl });
     } catch (error) {
       console.error('Create checkout error:', error);
@@ -283,13 +286,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .set({ status: 'completed' })
           .where(eq(transactions.id, txn.id));
         
-        // Add credits to user
+        // Add credits to user using raw SQL to avoid circular reference
+        const creditsToAdd = {
+          zhi1: txn.credits_zhi1 || 0,
+          zhi2: txn.credits_zhi2 || 0,
+          zhi3: txn.credits_zhi3 || 0,
+          zhi4: txn.credits_zhi4 || 0
+        };
         await db.update(users)
           .set({
-            credits_zhi1: sql`credits_zhi1 + ${txn.credits_zhi1}`,
-            credits_zhi2: sql`credits_zhi2 + ${txn.credits_zhi2}`,
-            credits_zhi3: sql`credits_zhi3 + ${txn.credits_zhi3}`,
-            credits_zhi4: sql`credits_zhi4 + ${txn.credits_zhi4}`,
+            credits_zhi1: sql`credits_zhi1 + ${creditsToAdd.zhi1}`,
+            credits_zhi2: sql`credits_zhi2 + ${creditsToAdd.zhi2}`,
+            credits_zhi3: sql`credits_zhi3 + ${creditsToAdd.zhi3}`,
+            credits_zhi4: sql`credits_zhi4 + ${creditsToAdd.zhi4}`,
           })
           .where(eq(users.id, txn.user_id));
         

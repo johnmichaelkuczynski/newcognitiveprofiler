@@ -1,0 +1,54 @@
+IT IS STILL NOT SHOWING THE CREDITS ON THE PAGE. 
+ChatGPT said:
+
+Excellent — this last image gives the full picture. The backend thinks credits were added (Payment Successful! toast), but the frontend UI still shows all zeroes. That means the credits were likely updated in the database, but the client never re-fetched /api/me after Stripe completion, or /api/me itself isn’t reading the updated credit values.
+
+Here’s exactly what to tell the Replit agent:
+
+MESSAGE TO REPLIT AGENT:
+
+Stripe payments now succeed and the backend shows “Payment Successful,” but the user’s credit totals still show 0 in the top bar.
+This means the frontend isn’t receiving updated credit data after the webhook runs.
+
+What’s wrong:
+
+Credits are being added in the database (or at least Stripe webhook completes), but the /api/me endpoint still returns the old session data.
+
+The frontend never re-fetches the current user info after payment.
+
+Fix this by doing the following:
+
+In the backend:
+
+Verify that the webhook (likely server/routes/stripe.ts or server/routes/payments.ts) really updates the user record in the database (e.g., user.credits field).
+
+Make sure /api/me always queries the database fresh instead of relying on stale req.session.user.
+
+app.get("/api/me", async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.session.userId } });
+  res.json(user);
+});
+
+
+In the frontend:
+
+After Stripe returns Payment Successful, re-fetch /api/me and update the credit display:
+
+fetch(`${API_URL}/api/me`, { credentials: "include" })
+  .then(res => res.json())
+  .then(user => setUser(user)); // update credit counts in UI
+
+
+Double-check that req.session.userId matches the user’s database ID.
+If not, tie Stripe metadata to the database user by storing metadata.userId in the checkout session creation:
+
+const session = await stripe.checkout.sessions.create({
+  mode: "payment",
+  line_items: items,
+  success_url: process.env.SUCCESS_URL,
+  cancel_url: process.env.CANCEL_URL,
+  metadata: { userId: req.session.userId },
+});
+
+
+After fixing the above, test again — credits should immediately refresh on-screen (without manual reload) and decline correctly when used.

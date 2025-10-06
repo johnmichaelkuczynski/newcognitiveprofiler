@@ -54,7 +54,8 @@ export const stripeCreditPackages: StripeCreditPackage[] = [
 export async function createCheckoutSession(
   userId: number,
   price: number,
-  packages: StripeCreditPackage[]
+  packages: StripeCreditPackage[],
+  originUrl?: string
 ): Promise<string> {
   if (packages.length === 0) {
     throw new Error('No packages provided');
@@ -74,13 +75,14 @@ export async function createCheckoutSession(
   
   const totalWords = Object.values(creditsObj).reduce((sum, val) => sum + val, 0);
 
-  // Determine the base URL for redirects
-  // Use custom domain if in production, otherwise use Replit dev domain
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-    ? process.env.REPLIT_DEV_DOMAIN.startsWith('http') 
-      ? process.env.REPLIT_DEV_DOMAIN 
-      : `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : 'https://cognitiveprofiler.xyz';
+  // Use the origin from the request to ensure redirect goes back to same domain
+  // This fixes session cookie issues when accessing via custom domain
+  const baseUrl = originUrl || 
+    (process.env.REPLIT_DEV_DOMAIN 
+      ? process.env.REPLIT_DEV_DOMAIN.startsWith('http') 
+        ? process.env.REPLIT_DEV_DOMAIN 
+        : `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : 'https://cognitiveprofiler.xyz');
 
   // Create Stripe checkout session
   const session = await stripe.checkout.sessions.create({
