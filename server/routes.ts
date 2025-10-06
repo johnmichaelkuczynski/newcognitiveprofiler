@@ -212,8 +212,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create Stripe checkout session
-  app.post("/api/create-checkout", requireAuth, async (req, res) => {
+  app.post("/api/create-checkout", async (req, res) => {
     try {
+      // Check if user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Please log in to purchase credits' });
+      }
+
       const { packageId } = req.body;
       
       // Parse package ID to get price (format: package_X where X is the price)
@@ -229,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use the first matching package to create a multi-provider session
-      const sessionUrl = await createCheckoutSession(req.session.userId!, price, matchingPackages);
+      const sessionUrl = await createCheckoutSession(req.session.userId, price, matchingPackages);
       res.json({ url: sessionUrl });
     } catch (error) {
       console.error('Create checkout error:', error);
