@@ -242,8 +242,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const signature = req.headers['stripe-signature'] as string;
     
     try {
-      // Try primary webhook secret first
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER;
+      // Use the correct webhook secret for this deployment
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_NEWCOGNITIVEPROFILER;
       
       if (!webhookSecret) {
         throw new Error('No webhook secret configured');
