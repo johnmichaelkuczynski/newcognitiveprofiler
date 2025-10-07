@@ -406,6 +406,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
       WHERE id = ${userId}
     `);
   }
+
+  // Streaming analysis endpoint - using all providers (Server-Sent Events)
+  app.post("/api/analyze-all-stream", async (req, res) => {
+    try {
+      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
+      const wordCount = text.trim().split(/\s+/).length;
+      const isAuthenticated = req.session && req.session.userId;
+      
+      if (!isAuthenticated) {
+        return res.status(401).json({ message: 'Authentication required for streaming analysis' });
+      }
+      
+      const user = await getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+      
+      const hasSufficientCredits = 
+        (user.credits_zhi1 || 0) >= wordCount &&
+        (user.credits_zhi2 || 0) >= wordCount &&
+        (user.credits_zhi3 || 0) >= wordCount &&
+        (user.credits_zhi4 || 0) >= wordCount;
+      
+      if (!hasSufficientCredits) {
+        return res.status(402).json({ 
+          message: 'Insufficient credits',
+          required: wordCount,
+          available: {
+            zhi1: user.credits_zhi1 || 0,
+            zhi2: user.credits_zhi2 || 0,
+            zhi3: user.credits_zhi3 || 0,
+            zhi4: user.credits_zhi4 || 0
+          }
+        });
+      }
+      
+      const newZhi1 = (user.credits_zhi1 || 0) - wordCount;
+      const newZhi2 = (user.credits_zhi2 || 0) - wordCount;
+      const newZhi3 = (user.credits_zhi3 || 0) - wordCount;
+      const newZhi4 = (user.credits_zhi4 || 0) - wordCount;
+      
+      await db.update(users)
+        .set({
+          credits_zhi1: newZhi1,
+          credits_zhi2: newZhi2,
+          credits_zhi3: newZhi3,
+          credits_zhi4: newZhi4
+        })
+        .where(eq(users.id, user.id));
+      
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      const { analyzeText } = await import('./ai');
+      const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
+      const providerNames = { deepseek: 'zhi1', openai: 'zhi2', anthropic: 'zhi3', perplexity: 'zhi4' };
+      
+      const analysisPromises = providers.map(async (provider) => {
+        try {
+          console.log(`Starting ${analysisType} analysis with ${provider}...`);
+          const result = await analyzeText(text, provider, analysisType);
+          
+          const sseData = JSON.stringify({
+            provider: providerNames[provider],
+            result: result,
+            status: 'completed'
+          });
+          res.write(`data: ${sseData}\n\n`);
+          console.log(`Completed ${analysisType} analysis with ${provider}`);
+        } catch (error) {
+          console.error(`Error analyzing with ${provider}:`, error);
+          const sseError = JSON.stringify({
+            provider: providerNames[provider],
+            error: error instanceof Error ? error.message : 'Analysis failed',
+            status: 'error'
+          });
+          res.write(`data: ${sseError}\n\n`);
+        }
+      });
+      
+      await Promise.all(analysisPromises);
+      
+      const finalMessage = JSON.stringify({
+        status: 'done',
+        updatedCredits: {
+          zhi1: newZhi1,
+          zhi2: newZhi2,
+          zhi3: newZhi3,
+          zhi4: newZhi4
+        }
+      });
+      res.write(`data: ${finalMessage}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error(`Error in streaming analysis:`, error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
   
   // Analysis endpoint - single provider
   app.post("/api/analyze", async (req, res) => {
