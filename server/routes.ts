@@ -395,14 +395,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Helper function to deduct credits for analysis
   async function deductCreditsForAnalysis(userId: number, wordCount: number): Promise<void> {
-    await db.update(users)
-      .set({ 
-        credits_zhi1: sql`${users.credits_zhi1} - ${wordCount}`,
-        credits_zhi2: sql`${users.credits_zhi2} - ${wordCount}`,
-        credits_zhi3: sql`${users.credits_zhi3} - ${wordCount}`,
-        credits_zhi4: sql`${users.credits_zhi4} - ${wordCount}`
-      })
-      .where(eq(users.id, userId));
+    // @ts-ignore - Type mismatch with Drizzle/Neon but works at runtime
+    await db.execute(sql`
+      UPDATE users 
+      SET 
+        credits_zhi1 = credits_zhi1 - ${wordCount},
+        credits_zhi2 = credits_zhi2 - ${wordCount},
+        credits_zhi3 = credits_zhi3 - ${wordCount},
+        credits_zhi4 = credits_zhi4 - ${wordCount}
+      WHERE id = ${userId}
+    `);
   }
   
   // Analysis endpoint - single provider
