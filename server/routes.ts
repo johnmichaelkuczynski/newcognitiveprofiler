@@ -285,17 +285,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis endpoint - using all providers (FREE - no auth required)
+  // Helper function to truncate analysis to first half of sentences
+  function truncateToHalf(text: string): string {
+    if (!text) return '';
+    
+    // Split by sentences (., !, ?)
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    
+    // Return first half of sentences
+    const halfIndex = Math.floor(sentences.length / 2);
+    return sentences.slice(0, halfIndex).join(' ');
+  }
+
+  // Analysis endpoint - using all providers (with paywall)
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Call all AI APIs and get combined results - no credit checks
+      // Calculate word count for credit calculation
+      const wordCount = text.trim().split(/\s+/).length;
+      
+      // Check if user is authenticated
+      const isAuthenticated = req.isAuthenticated && req.isAuthenticated();
+      
+      if (!isAuthenticated) {
+        // No auth - return partial results
+        const analyses = await analyzeTextWithAllProviders(text, analysisType);
+        
+        // Truncate all results to first half
+        const partialAnalyses = {
+          ...analyses,
+          isPartial: true,
+          deepseek: analyses.deepseek ? { ...analyses.deepseek, intelligence: truncateToHalf(analyses.deepseek.intelligence || ''), reasoning: truncateToHalf(analyses.deepseek.reasoning || ''), psychology: truncateToHalf(analyses.deepseek.psychology || '') } : analyses.deepseek,
+          openai: analyses.openai ? { ...analyses.openai, intelligence: truncateToHalf(analyses.openai.intelligence || ''), reasoning: truncateToHalf(analyses.openai.reasoning || ''), psychology: truncateToHalf(analyses.openai.psychology || '') } : analyses.openai,
+          anthropic: analyses.anthropic ? { ...analyses.anthropic, intelligence: truncateToHalf(analyses.anthropic.intelligence || ''), reasoning: truncateToHalf(analyses.anthropic.reasoning || ''), psychology: truncateToHalf(analyses.anthropic.psychology || '') } : analyses.anthropic,
+          perplexity: analyses.perplexity ? { ...analyses.perplexity, intelligence: truncateToHalf(analyses.perplexity.intelligence || ''), reasoning: truncateToHalf(analyses.perplexity.reasoning || ''), psychology: truncateToHalf(analyses.perplexity.psychology || '') } : analyses.perplexity
+        };
+        
+        return res.json(partialAnalyses);
+      }
+      
+      // User is authenticated - check credits
+      const user = req.user as User;
+      
+      // Check if user has sufficient credits for all providers
+      const hasSufficientCredits = 
+        (user.credits_zhi1 || 0) >= wordCount &&
+        (user.credits_zhi2 || 0) >= wordCount &&
+        (user.credits_zhi3 || 0) >= wordCount &&
+        (user.credits_zhi4 || 0) >= wordCount;
+      
+      if (!hasSufficientCredits) {
+        // Insufficient credits - return partial results
+        const analyses = await analyzeTextWithAllProviders(text, analysisType);
+        
+        // Truncate all results to first half
+        const partialAnalyses = {
+          ...analyses,
+          isPartial: true,
+          insufficientCredits: true,
+          deepseek: analyses.deepseek ? { ...analyses.deepseek, intelligence: truncateToHalf(analyses.deepseek.intelligence || ''), reasoning: truncateToHalf(analyses.deepseek.reasoning || ''), psychology: truncateToHalf(analyses.deepseek.psychology || '') } : analyses.deepseek,
+          openai: analyses.openai ? { ...analyses.openai, intelligence: truncateToHalf(analyses.openai.intelligence || ''), reasoning: truncateToHalf(analyses.openai.reasoning || ''), psychology: truncateToHalf(analyses.openai.psychology || '') } : analyses.openai,
+          anthropic: analyses.anthropic ? { ...analyses.anthropic, intelligence: truncateToHalf(analyses.anthropic.intelligence || ''), reasoning: truncateToHalf(analyses.anthropic.reasoning || ''), psychology: truncateToHalf(analyses.anthropic.psychology || '') } : analyses.anthropic,
+          perplexity: analyses.perplexity ? { ...analyses.perplexity, intelligence: truncateToHalf(analyses.perplexity.intelligence || ''), reasoning: truncateToHalf(analyses.perplexity.reasoning || ''), psychology: truncateToHalf(analyses.perplexity.psychology || '') } : analyses.perplexity
+        };
+        
+        return res.json(partialAnalyses);
+      }
+      
+      // User has sufficient credits - deduct and return full results
+      await db.update(users)
+        .set({
+          credits_zhi1: sql`${users.credits_zhi1} - ${wordCount}`,
+          credits_zhi2: sql`${users.credits_zhi2} - ${wordCount}`,
+          credits_zhi3: sql`${users.credits_zhi3} - ${wordCount}`,
+          credits_zhi4: sql`${users.credits_zhi4} - ${wordCount}`
+        })
+        .where(eq(users.id, user.id));
+      
+      // Get updated user credits
+      const updatedUser = await db.query.users.findFirst({
+        where: eq(users.id, user.id)
+      });
+      
+      // Call all AI APIs and get combined results
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return all analysis results
-      res.json(analyses);
+      // Return full analysis results with updated credits
+      res.json({
+        ...analyses,
+        isPartial: false,
+        updatedCredits: {
+          zhi1: updatedUser?.credits_zhi1 || 0,
+          zhi2: updatedUser?.credits_zhi2 || 0,
+          zhi3: updatedUser?.credits_zhi3 || 0,
+          zhi4: updatedUser?.credits_zhi4 || 0
+        }
+      });
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       
