@@ -173,5 +173,6 @@ export function useCognitiveAnalysis(onCreditsUpdated?: (credits: { zhi1: number
     error: textMutation.error || fileMutation.error,
     data,
     reset,
+    streamingProgress,
   };
 }

@@ -174,5 +174,6 @@ export function usePsychologicalAnalysis(onCreditsUpdated?: (credits: { zhi1: nu
     error: textMutation.error || fileMutation.error,
     data,
     reset,
+    streamingProgress,
   };
 }

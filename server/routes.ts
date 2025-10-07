@@ -452,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get user
-      const user = await getUserById(req.session.userId);
+      const user = await getUserById(req.session.userId!);
       if (!user) {
         return res.status(401).json({ message: 'User not found' });
       }
@@ -478,12 +478,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Deduct credits upfront
+      const zhi1Deduct = wordCount;
+      const zhi2Deduct = wordCount;
+      const zhi3Deduct = wordCount;
+      const zhi4Deduct = wordCount;
+      
       await db.update(users)
         .set({
-          credits_zhi1: sql`${users.credits_zhi1} - ${wordCount}`,
-          credits_zhi2: sql`${users.credits_zhi2} - ${wordCount}`,
-          credits_zhi3: sql`${users.credits_zhi3} - ${wordCount}`,
-          credits_zhi4: sql`${users.credits_zhi4} - ${wordCount}`
+          credits_zhi1: sql`${users.credits_zhi1} - ${zhi1Deduct}`,
+          credits_zhi2: sql`${users.credits_zhi2} - ${zhi2Deduct}`,
+          credits_zhi3: sql`${users.credits_zhi3} - ${zhi3Deduct}`,
+          credits_zhi4: sql`${users.credits_zhi4} - ${zhi4Deduct}`
         })
         .where(eq(users.id, user.id));
       
