@@ -285,140 +285,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Helper function to truncate analysis to first half of sentences
-  function truncateToHalf(text: string): string {
-    if (!text) return '';
-    
-    // Split by sentences (., !, ?)
-    const sentences = text.split(/(?<=[.!?])\s+/);
-    
-    // Return first half of sentences
-    const halfIndex = Math.floor(sentences.length / 2);
-    return sentences.slice(0, halfIndex).join(' ');
-  }
-
-  // Helper function to truncate cognitive or psychological analysis
-  function truncateAnalysis(analysis: any, analysisType: string): any {
-    if (!analysis) return analysis;
-    
-    if (analysisType === 'cognitive') {
-      return {
-        ...analysis,
-        detailedAnalysis: truncateToHalf(analysis.detailedAnalysis || '')
-      };
-    } else {
-      // Psychological analysis has nested objects
-      return {
-        ...analysis,
-        emotionalProfile: analysis.emotionalProfile ? {
-          ...analysis.emotionalProfile,
-          detailedAnalysis: truncateToHalf(analysis.emotionalProfile.detailedAnalysis || '')
-        } : analysis.emotionalProfile,
-        motivationalStructure: analysis.motivationalStructure ? {
-          ...analysis.motivationalStructure,
-          detailedAnalysis: truncateToHalf(analysis.motivationalStructure.detailedAnalysis || '')
-        } : analysis.motivationalStructure,
-        interpersonalDynamics: analysis.interpersonalDynamics ? {
-          ...analysis.interpersonalDynamics,
-          detailedAnalysis: truncateToHalf(analysis.interpersonalDynamics.detailedAnalysis || '')
-        } : analysis.interpersonalDynamics,
-        overallSummary: truncateToHalf(analysis.overallSummary || '')
-      };
-    }
-  }
-
   // Analysis endpoint - using all providers (with paywall)
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Calculate word count for credit calculation
+      // Calculate word count
       const wordCount = text.trim().split(/\s+/).length;
       
       // Check if user is authenticated
       const isAuthenticated = !!req.session.userId;
+      let hasCredits = false;
       
-      if (!isAuthenticated) {
-        // No auth - return partial results
-        const analyses = await analyzeTextWithAllProviders(text, analysisType);
-        
-        // Truncate all results to first half
-        const partialAnalyses = {
-          ...analyses,
-          isPartial: true,
-          deepseek: truncateAnalysis(analyses.deepseek, analysisType),
-          openai: truncateAnalysis(analyses.openai, analysisType),
-          anthropic: truncateAnalysis(analyses.anthropic, analysisType),
-          perplexity: truncateAnalysis(analyses.perplexity, analysisType)
-        };
-        
-        return res.json(partialAnalyses);
+      if (isAuthenticated && req.session.userId) {
+        // Get user to check credits
+        const user = await getUserById(req.session.userId);
+        if (user) {
+          // Check if user has enough credits for all providers
+          hasCredits = 
+            user.credits_zhi1 >= wordCount &&
+            user.credits_zhi2 >= wordCount &&
+            user.credits_zhi3 >= wordCount &&
+            user.credits_zhi4 >= wordCount;
+        }
       }
       
-      // User is authenticated - get user data
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, req.session.userId)
-      });
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-      
-      // Check if user has sufficient credits for all providers
-      const hasSufficientCredits = 
-        (user.credits_zhi1 || 0) >= wordCount &&
-        (user.credits_zhi2 || 0) >= wordCount &&
-        (user.credits_zhi3 || 0) >= wordCount &&
-        (user.credits_zhi4 || 0) >= wordCount;
-      
-      if (!hasSufficientCredits) {
-        // Insufficient credits - return partial results
-        const analyses = await analyzeTextWithAllProviders(text, analysisType);
-        
-        // Truncate all results to first half
-        const partialAnalyses = {
-          ...analyses,
-          isPartial: true,
-          insufficientCredits: true,
-          deepseek: truncateAnalysis(analyses.deepseek, analysisType),
-          openai: truncateAnalysis(analyses.openai, analysisType),
-          anthropic: truncateAnalysis(analyses.anthropic, analysisType),
-          perplexity: truncateAnalysis(analyses.perplexity, analysisType)
-        };
-        
-        return res.json(partialAnalyses);
-      }
-      
-      // User has sufficient credits - deduct and return full results
-      const newZhi1 = (user.credits_zhi1 || 0) - wordCount;
-      const newZhi2 = (user.credits_zhi2 || 0) - wordCount;
-      const newZhi3 = (user.credits_zhi3 || 0) - wordCount;
-      const newZhi4 = (user.credits_zhi4 || 0) - wordCount;
-      
-      await db.update(users)
-        .set({
-          credits_zhi1: newZhi1,
-          credits_zhi2: newZhi2,
-          credits_zhi3: newZhi3,
-          credits_zhi4: newZhi4
-        })
-        .where(eq(users.id, user.id));
-      
-      // Call all AI APIs and get combined results
+      // Get full analysis from all providers
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return full analysis results with updated credits
-      res.json({
-        ...analyses,
-        isPartial: false,
-        updatedCredits: {
-          zhi1: newZhi1,
-          zhi2: newZhi2,
-          zhi3: newZhi3,
-          zhi4: newZhi4
+      // If user doesn't have credits or isn't authenticated, truncate results
+      if (!hasCredits || !isAuthenticated) {
+        const truncatedAnalyses: any = { isPartial: true };
+        
+        for (const [provider, analysis] of Object.entries(analyses)) {
+          if (analysisType === 'cognitive') {
+            const cogAnalysis = analysis as any;
+            truncatedAnalyses[provider] = {
+              ...cogAnalysis,
+              detailedAnalysis: truncateToHalf(cogAnalysis.detailedAnalysis)
+            };
+          } else {
+            const psychAnalysis = analysis as any;
+            truncatedAnalyses[provider] = {
+              ...psychAnalysis,
+              emotionalProfile: {
+                ...psychAnalysis.emotionalProfile,
+                detailedAnalysis: truncateToHalf(psychAnalysis.emotionalProfile.detailedAnalysis)
+              },
+              motivationalStructure: {
+                ...psychAnalysis.motivationalStructure,
+                detailedAnalysis: truncateToHalf(psychAnalysis.motivationalStructure.detailedAnalysis)
+              },
+              interpersonalDynamics: {
+                ...psychAnalysis.interpersonalDynamics,
+                detailedAnalysis: truncateToHalf(psychAnalysis.interpersonalDynamics.detailedAnalysis)
+              },
+              overallSummary: truncateToHalf(psychAnalysis.overallSummary)
+            };
+          }
         }
-      });
+        
+        return res.json(truncatedAnalyses);
+      }
+      
+      // User has credits - deduct credits and return full analysis
+      if (req.session.userId) {
+        await deductCreditsForAnalysis(req.session.userId, wordCount);
+        
+        // Get updated user credits
+        const updatedUser = await getUserById(req.session.userId);
+        const response = {
+          ...analyses,
+          updatedCredits: {
+            zhi1: updatedUser?.credits_zhi1 || 0,
+            zhi2: updatedUser?.credits_zhi2 || 0,
+            zhi3: updatedUser?.credits_zhi3 || 0,
+            zhi4: updatedUser?.credits_zhi4 || 0
+          }
+        };
+        
+        return res.json(response);
+      }
+      
+      // Return full analysis
+      res.json(analyses);
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       
@@ -434,136 +385,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-  // Streaming analysis endpoint - using all providers (Server-Sent Events)
-  app.post("/api/analyze-all-stream", async (req, res) => {
-    try {
-      // Validate request body
-      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
-      
-      // Calculate word count for credit calculation
-      const wordCount = text.trim().split(/\s+/).length;
-      
-      // Check if user is authenticated
-      const isAuthenticated = req.session && req.session.userId;
-      
-      if (!isAuthenticated) {
-        return res.status(401).json({ message: 'Authentication required for streaming analysis' });
-      }
-      
-      // Get user
-      const user = await getUserById(req.session.userId!);
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-      
-      // Check if user has sufficient credits for all providers
-      const hasSufficientCredits = 
-        (user.credits_zhi1 || 0) >= wordCount &&
-        (user.credits_zhi2 || 0) >= wordCount &&
-        (user.credits_zhi3 || 0) >= wordCount &&
-        (user.credits_zhi4 || 0) >= wordCount;
-      
-      if (!hasSufficientCredits) {
-        return res.status(402).json({ 
-          message: 'Insufficient credits',
-          required: wordCount,
-          available: {
-            zhi1: user.credits_zhi1 || 0,
-            zhi2: user.credits_zhi2 || 0,
-            zhi3: user.credits_zhi3 || 0,
-            zhi4: user.credits_zhi4 || 0
-          }
-        });
-      }
-      
-      // Deduct credits upfront
-      const zhi1Deduct = wordCount;
-      const zhi2Deduct = wordCount;
-      const zhi3Deduct = wordCount;
-      const zhi4Deduct = wordCount;
-      
-      await db.update(users)
-        .set({
-          credits_zhi1: sql`${users.credits_zhi1} - ${zhi1Deduct}`,
-          credits_zhi2: sql`${users.credits_zhi2} - ${zhi2Deduct}`,
-          credits_zhi3: sql`${users.credits_zhi3} - ${zhi3Deduct}`,
-          credits_zhi4: sql`${users.credits_zhi4} - ${zhi4Deduct}`
-        })
-        .where(eq(users.id, user.id));
-      
-      // Get updated credits
-      const updatedUser = await db.query.users.findFirst({
-        where: eq(users.id, user.id)
-      });
-      
-      // Set up SSE headers
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      
-      // Import AI analysis functions
-      const { analyzeText } = await import('./ai');
-      const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
-      const providerNames = { deepseek: 'zhi1', openai: 'zhi2', anthropic: 'zhi3', perplexity: 'zhi4' };
-      
-      // Process all providers in parallel and stream results as they complete
-      const analysisPromises = providers.map(async (provider) => {
-        try {
-          console.log(`Starting ${analysisType} analysis with ${provider}...`);
-          const result = await analyzeText(text, provider, analysisType);
-          
-          // Send result via SSE
-          const sseData = JSON.stringify({
-            provider: providerNames[provider],
-            result: result,
-            status: 'completed'
-          });
-          res.write(`data: ${sseData}\n\n`);
-          console.log(`Completed ${analysisType} analysis with ${provider}`);
-        } catch (error) {
-          console.error(`Error analyzing with ${provider}:`, error);
-          const sseError = JSON.stringify({
-            provider: providerNames[provider],
-            error: error instanceof Error ? error.message : 'Analysis failed',
-            status: 'error'
-          });
-          res.write(`data: ${sseError}\n\n`);
-        }
-      });
-      
-      // Wait for all analyses to complete
-      await Promise.all(analysisPromises);
-      
-      // Send final message with updated credits
-      const finalMessage = JSON.stringify({
-        status: 'done',
-        updatedCredits: {
-          zhi1: updatedUser?.credits_zhi1 || 0,
-          zhi2: updatedUser?.credits_zhi2 || 0,
-          zhi3: updatedUser?.credits_zhi3 || 0,
-          zhi4: updatedUser?.credits_zhi4 || 0
-        }
-      });
-      res.write(`data: ${finalMessage}\n\n`);
-      
-      // End the stream
-      res.end();
-    } catch (error) {
-      console.error(`Error in streaming analysis (${req.body.analysisType || 'cognitive'}):`, error);
-      
-      if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: fromZodError(error).message 
-        });
-      }
-      
-      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
-      res.status(500).json({ 
-        message: errorMessage 
-      });
-    }
-  });
+  
+  // Helper function to truncate text to half
+  function truncateToHalf(text: string): string {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+    const halfIndex = Math.floor(sentences.length / 2);
+    return sentences.slice(0, halfIndex).join('. ') + '.';
+  }
+  
+  // Helper function to deduct credits for analysis
+  async function deductCreditsForAnalysis(userId: number, wordCount: number): Promise<void> {
+    // @ts-ignore - Type mismatch with Drizzle/Neon but works at runtime
+    await db.execute(sql`
+      UPDATE users 
+      SET 
+        credits_zhi1 = credits_zhi1 - ${wordCount},
+        credits_zhi2 = credits_zhi2 - ${wordCount},
+        credits_zhi3 = credits_zhi3 - ${wordCount},
+        credits_zhi4 = credits_zhi4 - ${wordCount}
+      WHERE id = ${userId}
+    `);
+  }
   
   // Analysis endpoint - single provider
   app.post("/api/analyze", async (req, res) => {

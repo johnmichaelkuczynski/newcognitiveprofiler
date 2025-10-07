@@ -17,99 +17,22 @@ export type MultiProviderPsychologicalResult = Record<ModelProvider, Psychologic
 
 export function usePsychologicalAnalysis(onCreditsUpdated?: (credits: { zhi1: number; zhi2: number; zhi3: number; zhi4: number }) => void) {
   const [data, setData] = useState<MultiProviderPsychologicalResult | null>(null);
-  const [streamingProgress, setStreamingProgress] = useState<Record<string, 'loading' | 'completed' | 'error'>>({
-    zhi1: 'loading',
-    zhi2: 'loading',
-    zhi3: 'loading',
-    zhi4: 'loading'
-  });
 
-  // Mutation for analyzing text with all providers using streaming
+  // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
-      return new Promise<MultiProviderPsychologicalResult>((resolve, reject) => {
-        const results: Partial<Record<ModelProvider, PsychologicalAnalysisResult>> = {};
-        let updatedCredits: any = null;
-        
-        // Reset streaming progress
-        setStreamingProgress({
-          zhi1: 'loading',
-          zhi2: 'loading',
-          zhi3: 'loading',
-          zhi4: 'loading'
-        });
-        
-        // Create a fetch request for SSE
-        fetch('/api/analyze-all-stream', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text, analysisType: 'psychological' }),
-          credentials: 'include',
-        }).then(async (response) => {
-          if (!response.ok) {
-            const errorData = await response.json();
-            reject(new Error(errorData.message || 'Analysis failed'));
-            return;
-          }
-          
-          if (!response.body) {
-            reject(new Error('No response body'));
-            return;
-          }
-          
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let buffer = '';
-          
-          const processText = async () => {
-            while (true) {
-              const { done, value } = await reader.read();
-              
-              if (done) {
-                break;
-              }
-              
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n\n');
-              buffer = lines.pop() || '';
-              
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  const data = JSON.parse(line.slice(6));
-                  
-                  if (data.status === 'completed' && data.provider && data.result) {
-                    // Map provider names back to API names
-                    const providerMap: Record<string, ModelProvider> = {
-                      'zhi1': 'deepseek',
-                      'zhi2': 'openai',
-                      'zhi3': 'anthropic',
-                      'zhi4': 'perplexity'
-                    };
-                    const providerKey = providerMap[data.provider];
-                    results[providerKey] = data.result;
-                    
-                    // Update progress
-                    setStreamingProgress(prev => ({ ...prev, [data.provider]: 'completed' }));
-                    
-                    // Update data incrementally
-                    setData({ ...results, originalText: text } as MultiProviderPsychologicalResult);
-                  } else if (data.status === 'error' && data.provider) {
-                    console.error(`Error from ${data.provider}:`, data.error);
-                    setStreamingProgress(prev => ({ ...prev, [data.provider]: 'error' }));
-                  } else if (data.status === 'done') {
-                    updatedCredits = data.updatedCredits;
-                    resolve({ ...results, originalText: text, remainingCredits: updatedCredits } as MultiProviderPsychologicalResult);
-                  }
-                }
-              }
-            }
-          };
-          
-          await processText();
-        }).catch(reject);
+      const response = await apiRequest("POST", "/api/analyze-all", { 
+        text, 
+        analysisType: "psychological" 
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Analysis failed');
+      }
+      
+      const result = await response.json();
+      return { ...result, originalText: text };
     },
     onSuccess: (result) => {
       setData(result);
@@ -174,6 +97,5 @@ export function usePsychologicalAnalysis(onCreditsUpdated?: (credits: { zhi1: nu
     error: textMutation.error || fileMutation.error,
     data,
     reset,
-    streamingProgress,
   };
 }
