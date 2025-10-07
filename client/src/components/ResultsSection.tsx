@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen, Heart, Coins } from "lucide-react";
+import { Check, Download, Copy, RefreshCw, BrainCircuit, Sparkles, Lightbulb, Layers, FileText, Mail, FileType, BookOpen, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -133,10 +133,9 @@ interface ResultsSectionProps {
   result: MultiProviderAnalysisResult;
   onNewAnalysis: () => void;
   onSwitchAnalysisType?: (text: string) => void;
-  onPurchaseCredits?: () => void;
 }
 
-export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysisType, onPurchaseCredits }: ResultsSectionProps) {
+export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysisType }: ResultsSectionProps) {
   const [activeTab, setActiveTab] = useState("all-profiles");
   const [copied, setCopied] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
@@ -832,40 +831,6 @@ export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysis
               </AccordionContent>
             </AccordionItem>
           </Accordion>
-        </div>
-      )}
-      
-      {/* Paywall Banner - Show if result is partial */}
-      {(result as any).isPartial && onPurchaseCredits && (
-        <div 
-          onClick={onPurchaseCredits}
-          className="mt-6 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-8 cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-amber-400"
-          data-testid="paywall-banner"
-        >
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="font-heading text-2xl font-bold text-amber-900 mb-2">
-                Want to see the full analysis?
-              </h3>
-              <p className="text-amber-800 text-lg mb-4">
-                You're viewing a preview. Buy credits to unlock the complete cognitive profile with detailed insights from all AI providers.
-              </p>
-              <Button 
-                size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-8 py-6 text-lg"
-                onClick={onPurchaseCredits}
-                data-testid="button-unlock-full-analysis"
-              >
-                <Coins className="h-5 w-5 mr-2" />
-                Buy Credits to Unlock Full Analysis
-              </Button>
-            </div>
-          </div>
         </div>
       )}
 
