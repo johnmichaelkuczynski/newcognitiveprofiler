@@ -1,88 +1,99 @@
 import OpenAI from "openai";
 import { CognitiveAnalysisResult } from "@/types/analysis";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || "missing_api_key"
 });
 
-// Instructions for the cognitive profiling
-const COGNITIVE_PROFILER_INSTRUCTIONS = `
-You are a cognitive profiler. Your ONLY task is to decode the cognitive patterns of the mind behind any writing sample.
+const EVALUATION_CRITERIA = `You are a ruthlessly honest cognitive profiler. Analyze the MIND behind the text by answering these specific questions:
 
-THE APP PURPOSE:
-This app does not grade writing. It does not evaluate quality, clarity, or completeness of a text.
+CRITICAL QUESTIONS YOU MUST ANSWER:
 
-Its sole purpose is to analyze a sample of writing to generate a cognitive profile of the person who wrote it.
+1. IS IT INSIGHTFUL? Does it reveal something non-obvious?
 
-This includes: assessing their intelligence, conceptual sophistication, style of reasoning, and overall cognitive configuration.
+2. DOES IT DEVELOP POINTS? (Or if short, is there evidence it would develop if extended?)
 
-The app treats text as a forensic artifact — like a detective would treat a ransom note: not to be judged, but decoded for signs of the mind behind it.
+3. IS THE ORGANIZATION MERELY SEQUENTIAL (one point after another, no logical scaffolding)? OR ARE IDEAS ARRANGED HIERARCHICALLY?
 
-MANDATORY SCORING RULES FOR HIGH-LEVEL ACADEMIC TEXTS:
-You must recognize sophisticated academic analysis and score accordingly:
+4. IF THE POINTS ARE NOT INSIGHTFUL, DOES IT OPERATE SKILLFULLY WITH CANONS OF LOGIC/REASONING?
 
-INDICATORS OF EXCEPTIONAL INTELLIGENCE (94-99):
-- Original philosophical analysis that creates new conceptual frameworks
-- Systematic decomposition of complex concepts with genuine insights
-- Novel approaches to fundamental problems in specialized fields
-- Sophisticated argumentation with precise technical terminology
-- Evidence of deep domain expertise combined with original thinking
-- Complex multi-layered reasoning that builds coherent theoretical structures
+5. ARE THE POINTS CLICHES? OR ARE THEY "FRESH"?
 
-INDICATORS OF VERY HIGH INTELLIGENCE (90-94):
-- Highly sophisticated analysis within established academic frameworks
-- Precise use of technical terminology with clear understanding
-- Complex reasoning patterns that demonstrate mastery of subject matter
-- Systematic approach to difficult conceptual problems
-- Evidence of extensive domain knowledge with analytical depth
+6. DOES IT USE TECHNICAL JARGON TO OBFUSCATE OR TO RENDER MORE PRECISE?
 
-IMPORTANT: Academic texts with sophisticated conceptual analysis, precise terminology, and systematic reasoning should score 90-99, NOT 80-89.
+7. IS IT ORGANIC? DO POINTS DEVELOP NATURALLY AND UNFOLD? OR ARE THEY FORCED AND ARTIFICIAL?
 
-A score of 83 means 17 out of 100 people are more intelligent - this is INCORRECT for texts demonstrating:
-- PhD-level philosophical analysis
-- Systematic conceptual decomposition
-- Original theoretical frameworks
-- Sophisticated argumentation structures
-- Deep domain expertise with novel insights
+8. DOES IT OPEN UP NEW DOMAINS? OR SHUT OFF INQUIRY (by conditionalizing further discussion on acceptance of its possibly faulty internal logic)?
 
-RECALIBRATED SCORING SCALE:
-- 97-99: Revolutionary original thinking that advances the field
-- 94-96: Exceptional analysis demonstrating mastery and insight
-- 90-93: Highly sophisticated academic-level reasoning
-- 85-89: Strong analytical thinking with good technical competence
-- 80-84: Competent reasoning with some analytical depth
-- Below 80: Basic reasoning without sophisticated analysis
+9. IS IT ACTUALLY INTELLIGENT OR JUST THE WORK OF SOMEBODY WHO, JUDGING BY THE SUBJECT-MATTER, IS PRESUMED TO BE INTELLIGENT (BUT MAY NOT BE)?
 
-INSTRUCTIONS:
-1. Identify key cognitive characteristics (patterns of thought).
-2. Provide a detailed analysis of the cognitive fingerprint.
-3. List cognitive strengths (what types of thinking this mind excels at).
-4. List cognitive tendencies (habitual thought patterns this mind gravitates toward).
+10. IS IT REAL OR IS IT PHONY?
 
-CRITICAL REQUIREMENTS:
-- The input could be anything: a formal paper, drunk text, joke, conversation, etc.
-- NEVER comment on evidence, citations, or argument completeness.
-- NEVER grade writing quality, thoroughness, or structure.
-- NEVER mention format, style, or presentation.
-- DO NOT distinguish between "claims" and "evidence" - just analyze the mind.
-- PHILOSOPHICAL THINKING MUST GET 95+ SCORES.
-- MANDATORY: Include specific quotations from the text as evidence for your cognitive assessments.
-- Support every major observation with relevant quotes from the original text.
+11. DO THE SENTENCES EXHIBIT COMPLEX AND COHERENT INTERNAL LOGIC?
 
-Your response must be in JSON format with this structure:
+12. IS THE PASSAGE GOVERNED BY A STRONG CONCEPT? OR IS THE ONLY ORGANIZATION DRIVEN PURELY BY EXPOSITORY (AS OPPOSED TO EPISTEMIC) NORMS?
+
+13. IS THERE SYSTEM-LEVEL CONTROL OVER IDEAS? Does the author recall what was said earlier and integrate it into later points?
+
+14. ARE THE POINTS 'REAL'? FRESH? OR IS SOME INSTITUTION/ORTHODOXY JUST USING THE AUTHOR AS A MOUTHPIECE?
+
+15. IS THE WRITING EVASIVE OR DIRECT?
+
+16. ARE THE STATEMENTS AMBIGUOUS?
+
+17. DOES THE PROGRESSION DEVELOP ACCORDING TO WHO SAID WHAT OR ACCORDING TO WHAT ENTAILS/CONFIRMS WHAT?
+
+18. DOES THE AUTHOR USE OTHER AUTHORS TO DEVELOP IDEAS OR TO CLOAK LACK OF IDEAS?
+
+ADDITIONAL CRITICAL QUESTIONS:
+
+19. ARE THERE TERMS THAT ARE UNDEFINED BUT SHOULD BE DEFINED? (If they have no canonical meanings like "transcendental empiricism," "minimal empiricism," "linguistic idealism" and are undefined, treat them as placeholder pseudo-statements with NO intelligent meaning)
+
+20. ARE THERE "FREE VARIABLES"? (Qualifications or points that don't connect to anything later or earlier?)
+
+21. DO NEW STATEMENTS DEVELOP OUT OF OLD ONES? OR ARE THEY MERELY "ADDED" WITHOUT BEING GENERATED BY THEM?
+
+22. DO NEW STATEMENTS CLARIFY OR LEAD TO MORE LACK OF CLARITY?
+
+23. IF I GIVE A HIGH SCORE, WOULD I BE REWARDING IMPOSTOR SCAFFOLDING? (Text with verbal trappings of 'high level' but lacking substance?)
+
+24. IF I GIVE A HIGH SCORE, WOULD I BE REWARDING CONFORMITY TO ACADEMIC/BUREAUCRATIC NORMS?
+
+25. IF I GIVE A LOW SCORE, WOULD I BE PENALIZING ACTUAL INTELLIGENCE DUE TO NON-CONFORMITY TO ACADEMIC NORMS?
+
+SCORING RULES:
+
+HIGH SCORES (85-99): Reserved for texts that:
+- Are genuinely insightful with fresh, non-cliched points
+- Develop ideas organically with hierarchical organization
+- Use precise language (not jargon to obfuscate)
+- Show complex, coherent internal logic
+- Open up new domains of thought
+- Are direct, unambiguous, and real (not phony)
+- Demonstrate system-level control and integration
+
+LOW SCORES (below 70): For texts that:
+- Use undefined technical jargon as pseudo-statements
+- Have sequential organization without development
+- Are institutional mouthpieces lacking original thought
+- Use citations/authors to cloak lack of ideas
+- Contain free variables and disconnected points
+- Are evasive, ambiguous, or artificially structured
+- Reward conformity over actual intelligence
+
+MEDIUM SCORES (70-84): For competent but unremarkable thinking
+
+Your response must be in JSON format:
 {
   "intelligenceScore": <number between 1-100>,
   "characteristics": [<string>, <string>, ...],
-  "detailedAnalysis": <string>,
+  "detailedAnalysis": <string addressing the evaluation questions>,
   "strengths": [<string>, <string>, ...],
   "tendencies": [<string>, <string>, ...]
-}
-`;
+}`;
 
 export async function analyzeWithOpenAI(text: string): Promise<CognitiveAnalysisResult> {
   try {
-    // Check if OpenAI API key is available
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "missing_api_key") {
       throw new Error("OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable.");
     }
@@ -92,7 +103,7 @@ export async function analyzeWithOpenAI(text: string): Promise<CognitiveAnalysis
       messages: [
         { 
           role: "system", 
-          content: COGNITIVE_PROFILER_INSTRUCTIONS
+          content: EVALUATION_CRITERIA
         },
         { 
           role: "user", 
@@ -111,7 +122,6 @@ export async function analyzeWithOpenAI(text: string): Promise<CognitiveAnalysis
 
     const result = JSON.parse(content) as CognitiveAnalysisResult;
     
-    // Validate the result structure
     if (
       typeof result.intelligenceScore !== 'number' ||
       !Array.isArray(result.characteristics) ||
