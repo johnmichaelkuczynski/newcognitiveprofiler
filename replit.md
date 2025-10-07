@@ -14,6 +14,9 @@ The Mind Profiler is a web application that analyzes writing samples to generate
    - All 4 providers (DeepSeek, OpenAI, Anthropic, Perplexity) use identical critical protocol
    - **Output Format**: Each question is **numbered and bold** with answers clearly separated
      - Example: **1. IS IT INSIGHTFUL?** followed by explicit answer with quotes
+   - **JSON Parsing Fix**: Added "JSON_START" marker to reliably extract structured data from AI responses
+     - Prevents parsing errors across all four providers
+     - All providers now consistently return formatted analysis with scores
 
 2. **Credit-Based Payment System**: Implemented Stripe payment integration with word-based credits:
    - Users must purchase credits to analyze text
