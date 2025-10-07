@@ -91,7 +91,7 @@ Your explicit answer with quotes and argumentation here.
 
 [Continue for all 18 questions...]
 
-Then at the very end, provide a JSON block with ONLY these fields:
+Then at the very end, on a new line write "JSON_START" then provide a JSON block with ONLY these fields:
 {
   "intelligenceScore": <number 1-100>,
   "characteristics": [<array of 3-5 cognitive traits>],
@@ -126,16 +126,32 @@ export async function analyzeWithAnthropic(text: string): Promise<CognitiveAnaly
       throw new Error("No response from Anthropic API");
     }
 
-    // Extract JSON block from end
-    const jsonMatch = content.match(/\{[\s\S]*"intelligenceScore"[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid JSON response from Anthropic API');
+    // Look for JSON_START marker
+    const jsonStartIndex = content.indexOf('JSON_START');
+    let jsonStr = '';
+    let detailedAnalysis = content;
+    
+    if (jsonStartIndex !== -1) {
+      const afterMarker = content.substring(jsonStartIndex + 10);
+      const jsonMatch = afterMarker.match(/\{[^}]*"intelligenceScore"[^}]*\}/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+        detailedAnalysis = content.substring(0, jsonStartIndex).trim();
+      }
+    }
+    
+    // Fallback: try to find any JSON block
+    if (!jsonStr) {
+      const jsonMatch = content.match(/\{[^}]*"intelligenceScore"[^}]*\}/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+        detailedAnalysis = content.substring(0, content.indexOf(jsonMatch[0])).trim();
+      } else {
+        throw new Error('Could not find JSON in response');
+      }
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    
-    // Extract the detailed analysis (everything before the JSON block)
-    const detailedAnalysis = content.substring(0, content.indexOf(jsonMatch[0])).trim();
+    const parsed = JSON.parse(jsonStr);
     
     return {
       intelligenceScore: Math.max(1, Math.min(100, parsed.intelligenceScore || 75)),
