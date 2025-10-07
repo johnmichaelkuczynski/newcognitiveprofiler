@@ -137,7 +137,10 @@ export async function analyzeWithPerplexity(text: string): Promise<CognitiveAnal
       throw new Error("No response from Perplexity API");
     }
 
-    const parsed = JSON.parse(content);
+    // Strip markdown code blocks if present
+    const cleanContent = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+
+    const parsed = JSON.parse(cleanContent);
     
     const questionAnswers = parsed.questionAnswers || {};
     const detailedAnalysis = `${parsed.summary || ''}\n\n${Object.entries(questionAnswers).map(([key, value]) => `${key}: ${value}`).join('\n\n')}\n\n${parsed.detailedAnalysis || ''}`;
