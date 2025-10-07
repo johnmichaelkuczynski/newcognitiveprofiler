@@ -15,21 +15,8 @@ export type MultiProviderAnalysisResult = Record<ModelProvider, CognitiveAnalysi
   };
 };
 
-type StreamingProgress = {
-  zhi1: 'pending' | 'loading' | 'completed' | 'error';
-  zhi2: 'pending' | 'loading' | 'completed' | 'error';
-  zhi3: 'pending' | 'loading' | 'completed' | 'error';
-  zhi4: 'pending' | 'loading' | 'completed' | 'error';
-};
-
 export function useCognitiveAnalysis(onCreditsUpdated?: (credits: { zhi1: number; zhi2: number; zhi3: number; zhi4: number }) => void) {
   const [data, setData] = useState<MultiProviderAnalysisResult | null>(null);
-  const [streamingProgress, setStreamingProgress] = useState<StreamingProgress>({
-    zhi1: 'pending',
-    zhi2: 'pending',
-    zhi3: 'pending',
-    zhi4: 'pending'
-  });
 
   // Mutation for analyzing text with all providers simultaneously
   const textMutation = useMutation({
