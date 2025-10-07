@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import IntroSection from "@/components/IntroSection";
 import InputSection from "@/components/InputSection";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
+import StreamingProcessingIndicator from "@/components/StreamingProcessingIndicator";
 import ResultsSection from "@/components/ResultsSection";
 import SimplePsychologicalResults from "@/components/SimplePsychologicalResults";
 import ErrorSection from "@/components/ErrorSection";
@@ -44,6 +45,7 @@ export default function Home() {
     isError: isCognitiveError,
     error: cognitiveError,
     data: cognitiveResult,
+    streamingProgress: cognitiveStreamingProgress,
     reset: resetCognitive
   } = useCognitiveAnalysis(handleCreditsUpdate);
   
@@ -309,7 +311,14 @@ export default function Home() {
         )}
         
         {isLoading && (
-          <ProcessingIndicator />
+          <>
+            {analysisType === "cognitive" && cognitiveStreamingProgress && (
+              <StreamingProcessingIndicator progress={cognitiveStreamingProgress} />
+            )}
+            {analysisType === "psychological" && (
+              <ProcessingIndicator />
+            )}
+          </>
         )}
         
         {!isLoading && !isError && (
