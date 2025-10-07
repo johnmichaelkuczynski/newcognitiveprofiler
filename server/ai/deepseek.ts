@@ -72,32 +72,24 @@ PARADIGM OF PHONY PSEUDO-INTELLECTUAL TEXT (easily mistaken for intelligent):
 
 Problems: Doctrines labelled but never defined, contains "free variables", ambiguous relationships between sentences, throat clearing, pure evasiveness, undefined jargon, lack of control.
 
-Respond in JSON format:
+FORMAT YOUR RESPONSE:
+
+First line: Brief summary and categorization
+
+Then for each question, format EXACTLY like this (with bold question numbers):
+
+**1. IS IT INSIGHTFUL?**
+Your explicit answer with quotes and argumentation here.
+
+**2. DOES IT DEVELOP POINTS?**
+Your explicit answer with quotes and argumentation here.
+
+[Continue for all 18 questions...]
+
+Then at the very end, provide a JSON block with ONLY these fields:
 {
-  "summary": "<brief summary and categorization>",
   "intelligenceScore": <number 1-100>,
-  "questionAnswers": {
-    "isInsightful": "<explicit answer with quotes>",
-    "developsPoints": "<explicit answer with quotes>",
-    "organizationHierarchical": "<explicit answer with quotes>",
-    "logicSkillful": "<explicit answer with quotes>",
-    "pointsFresh": "<explicit answer with quotes>",
-    "jargonPrecise": "<explicit answer with quotes>",
-    "organic": "<explicit answer with quotes>",
-    "opensInquiry": "<explicit answer with quotes>",
-    "actuallyIntelligent": "<explicit answer with quotes>",
-    "realOrPhony": "<explicit answer with quotes>",
-    "sentenceLogic": "<explicit answer with quotes>",
-    "strongConcept": "<explicit answer with quotes>",
-    "systemControl": "<explicit answer with quotes>",
-    "pointsReal": "<explicit answer with quotes>",
-    "directOrEvasive": "<explicit answer with quotes>",
-    "statementsAmbiguous": "<explicit answer with quotes>",
-    "progressionLogical": "<explicit answer with quotes>",
-    "usesAuthors": "<explicit answer with quotes>"
-  },
   "characteristics": [<array of 3-5 cognitive traits>],
-  "detailedAnalysis": "<overall synthesis>",
   "strengths": [<array of 3-4 strengths>],
   "tendencies": [<array of 3-4 tendencies>]
 }`;
@@ -138,15 +130,16 @@ export async function analyzeWithDeepSeek(text: string): Promise<CognitiveAnalys
       throw new Error('No content received from DeepSeek API');
     }
 
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    // Extract JSON block from end
+    const jsonMatch = content.match(/\{[\s\S]*"intelligenceScore"[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Invalid JSON response from DeepSeek API');
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
     
-    const questionAnswers = parsed.questionAnswers || {};
-    const detailedAnalysis = `${parsed.summary || ''}\n\n${Object.entries(questionAnswers).map(([key, value]) => `${key}: ${value}`).join('\n\n')}\n\n${parsed.detailedAnalysis || ''}`;
+    // Extract the detailed analysis (everything before the JSON block)
+    const detailedAnalysis = content.substring(0, content.indexOf(jsonMatch[0])).trim();
     
     return {
       intelligenceScore: Math.max(1, Math.min(100, parsed.intelligenceScore || 75)),
