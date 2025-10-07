@@ -311,6 +311,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Streaming analysis endpoint - using all providers (Server-Sent Events)
+  app.post("/api/analyze-all-stream", async (req, res) => {
+    try {
+      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
+      const wordCount = text.trim().split(/\s+/).length;
+      
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      const { analyzeText } = await import('./ai');
+      const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
+      const providerNames = { deepseek: 'zhi1', openai: 'zhi2', anthropic: 'zhi3', perplexity: 'zhi4' };
+      
+      const analysisPromises = providers.map(async (provider) => {
+        try {
+          console.log(`[STREAM] Starting ${analysisType} analysis with ${provider}...`);
+          const result = await analyzeText(text, provider, analysisType);
+          
+          const sseData = JSON.stringify({
+            provider: providerNames[provider],
+            result: result,
+            status: 'completed'
+          });
+          res.write(`data: ${sseData}\n\n`);
+          console.log(`[STREAM] Completed ${analysisType} analysis with ${provider}`);
+        } catch (error) {
+          console.error(`[STREAM] Error analyzing with ${provider}:`, error);
+          const sseError = JSON.stringify({
+            provider: providerNames[provider],
+            error: error instanceof Error ? error.message : 'Analysis failed',
+            status: 'error'
+          });
+          res.write(`data: ${sseError}\n\n`);
+        }
+      });
+      
+      await Promise.all(analysisPromises);
+      
+      const finalMessage = JSON.stringify({
+        status: 'done'
+      });
+      res.write(`data: ${finalMessage}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error(`[STREAM] Error in streaming analysis:`, error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
   
   // Analysis endpoint - single provider
   app.post("/api/analyze", async (req, res) => {
