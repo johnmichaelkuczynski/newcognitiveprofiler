@@ -224,17 +224,6 @@ export default function Home() {
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* Always show Purchase Credits button */}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handlePurchaseCredits}
-              data-testid="button-purchase-credits"
-            >
-              <Coins className="h-4 w-4 mr-1" />
-              Buy Credits
-            </Button>
-            
             {isAuthenticated && user ? (
               <>
                 <Badge variant="outline" className="px-3 py-1">
@@ -252,6 +241,14 @@ export default function Home() {
               </>
             ) : (
               <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handlePurchaseCredits}
+                >
+                  <Coins className="h-4 w-4 mr-1" />
+                  Purchase Credits
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -322,7 +319,6 @@ export default function Home() {
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
                 onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "psychological")}
-                onPurchaseCredits={handlePurchaseCredits}
               />
             )}
             
@@ -331,7 +327,6 @@ export default function Home() {
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
                 onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "cognitive")}
-                onPurchaseCredits={handlePurchaseCredits}
               />
             )}
           </>

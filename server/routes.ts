@@ -285,90 +285,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis endpoint - using all providers (with paywall)
+  // Analysis endpoint - using all providers (FREE - no auth required)
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Calculate word count
-      const wordCount = text.trim().split(/\s+/).length;
-      
-      // Check if user is authenticated
-      const isAuthenticated = !!req.session.userId;
-      let hasCredits = false;
-      
-      if (isAuthenticated && req.session.userId) {
-        // Get user to check credits
-        const user = await getUserById(req.session.userId);
-        if (user) {
-          // Check if user has enough credits for all providers
-          hasCredits = 
-            user.credits_zhi1 >= wordCount &&
-            user.credits_zhi2 >= wordCount &&
-            user.credits_zhi3 >= wordCount &&
-            user.credits_zhi4 >= wordCount;
-        }
-      }
-      
-      // Get full analysis from all providers
+      // Call all AI APIs and get combined results - no credit checks
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // If user doesn't have credits or isn't authenticated, truncate results
-      if (!hasCredits || !isAuthenticated) {
-        const truncatedAnalyses: any = { isPartial: true };
-        
-        for (const [provider, analysis] of Object.entries(analyses)) {
-          if (analysisType === 'cognitive') {
-            const cogAnalysis = analysis as any;
-            truncatedAnalyses[provider] = {
-              ...cogAnalysis,
-              detailedAnalysis: truncateToHalf(cogAnalysis.detailedAnalysis)
-            };
-          } else {
-            const psychAnalysis = analysis as any;
-            truncatedAnalyses[provider] = {
-              ...psychAnalysis,
-              emotionalProfile: {
-                ...psychAnalysis.emotionalProfile,
-                detailedAnalysis: truncateToHalf(psychAnalysis.emotionalProfile.detailedAnalysis)
-              },
-              motivationalStructure: {
-                ...psychAnalysis.motivationalStructure,
-                detailedAnalysis: truncateToHalf(psychAnalysis.motivationalStructure.detailedAnalysis)
-              },
-              interpersonalDynamics: {
-                ...psychAnalysis.interpersonalDynamics,
-                detailedAnalysis: truncateToHalf(psychAnalysis.interpersonalDynamics.detailedAnalysis)
-              },
-              overallSummary: truncateToHalf(psychAnalysis.overallSummary)
-            };
-          }
-        }
-        
-        return res.json(truncatedAnalyses);
-      }
-      
-      // User has credits - deduct credits and return full analysis
-      if (req.session.userId) {
-        await deductCreditsForAnalysis(req.session.userId, wordCount);
-        
-        // Get updated user credits
-        const updatedUser = await getUserById(req.session.userId);
-        const response = {
-          ...analyses,
-          updatedCredits: {
-            zhi1: updatedUser?.credits_zhi1 || 0,
-            zhi2: updatedUser?.credits_zhi2 || 0,
-            zhi3: updatedUser?.credits_zhi3 || 0,
-            zhi4: updatedUser?.credits_zhi4 || 0
-          }
-        };
-        
-        return res.json(response);
-      }
-      
-      // Return full analysis
+      // Return all analysis results
       res.json(analyses);
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
@@ -383,130 +309,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: errorMessage 
       });
-    }
-  });
-  
-  // Helper function to truncate text to half
-  function truncateToHalf(text: string): string {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim());
-    const halfIndex = Math.floor(sentences.length / 2);
-    return sentences.slice(0, halfIndex).join('. ') + '.';
-  }
-  
-  // Helper function to deduct credits for analysis
-  async function deductCreditsForAnalysis(userId: number, wordCount: number): Promise<void> {
-    // @ts-ignore - Type mismatch with Drizzle/Neon but works at runtime
-    await db.execute(sql`
-      UPDATE users 
-      SET 
-        credits_zhi1 = credits_zhi1 - ${wordCount},
-        credits_zhi2 = credits_zhi2 - ${wordCount},
-        credits_zhi3 = credits_zhi3 - ${wordCount},
-        credits_zhi4 = credits_zhi4 - ${wordCount}
-      WHERE id = ${userId}
-    `);
-  }
-
-  // Streaming analysis endpoint - using all providers (Server-Sent Events)
-  app.post("/api/analyze-all-stream", async (req, res) => {
-    try {
-      const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
-      const wordCount = text.trim().split(/\s+/).length;
-      const isAuthenticated = req.session && req.session.userId;
-      
-      if (!isAuthenticated) {
-        return res.status(401).json({ message: 'Authentication required for streaming analysis' });
-      }
-      
-      const user = await getUserById(req.session.userId!);
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-      
-      const hasSufficientCredits = 
-        (user.credits_zhi1 || 0) >= wordCount &&
-        (user.credits_zhi2 || 0) >= wordCount &&
-        (user.credits_zhi3 || 0) >= wordCount &&
-        (user.credits_zhi4 || 0) >= wordCount;
-      
-      if (!hasSufficientCredits) {
-        return res.status(402).json({ 
-          message: 'Insufficient credits',
-          required: wordCount,
-          available: {
-            zhi1: user.credits_zhi1 || 0,
-            zhi2: user.credits_zhi2 || 0,
-            zhi3: user.credits_zhi3 || 0,
-            zhi4: user.credits_zhi4 || 0
-          }
-        });
-      }
-      
-      const newZhi1 = (user.credits_zhi1 || 0) - wordCount;
-      const newZhi2 = (user.credits_zhi2 || 0) - wordCount;
-      const newZhi3 = (user.credits_zhi3 || 0) - wordCount;
-      const newZhi4 = (user.credits_zhi4 || 0) - wordCount;
-      
-      await db.update(users)
-        .set({
-          credits_zhi1: newZhi1,
-          credits_zhi2: newZhi2,
-          credits_zhi3: newZhi3,
-          credits_zhi4: newZhi4
-        })
-        .where(eq(users.id, user.id));
-      
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      
-      const { analyzeText } = await import('./ai');
-      const providers: ModelProvider[] = ["deepseek", "openai", "anthropic", "perplexity"];
-      const providerNames = { deepseek: 'zhi1', openai: 'zhi2', anthropic: 'zhi3', perplexity: 'zhi4' };
-      
-      const analysisPromises = providers.map(async (provider) => {
-        try {
-          console.log(`Starting ${analysisType} analysis with ${provider}...`);
-          const result = await analyzeText(text, provider, analysisType);
-          
-          const sseData = JSON.stringify({
-            provider: providerNames[provider],
-            result: result,
-            status: 'completed'
-          });
-          res.write(`data: ${sseData}\n\n`);
-          console.log(`Completed ${analysisType} analysis with ${provider}`);
-        } catch (error) {
-          console.error(`Error analyzing with ${provider}:`, error);
-          const sseError = JSON.stringify({
-            provider: providerNames[provider],
-            error: error instanceof Error ? error.message : 'Analysis failed',
-            status: 'error'
-          });
-          res.write(`data: ${sseError}\n\n`);
-        }
-      });
-      
-      await Promise.all(analysisPromises);
-      
-      const finalMessage = JSON.stringify({
-        status: 'done',
-        updatedCredits: {
-          zhi1: newZhi1,
-          zhi2: newZhi2,
-          zhi3: newZhi3,
-          zhi4: newZhi4
-        }
-      });
-      res.write(`data: ${finalMessage}\n\n`);
-      res.end();
-    } catch (error) {
-      console.error(`Error in streaming analysis:`, error);
-      if (error instanceof ZodError) {
-        return res.status(400).json({ message: fromZodError(error).message });
-      }
-      const errorMessage = error instanceof Error ? error.message : "Failed to analyze text. Please try again.";
-      res.status(500).json({ message: errorMessage });
     }
   });
   
