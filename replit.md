@@ -6,33 +6,42 @@ The Mind Profiler is a web application that analyzes writing samples to generate
 
 ## Recent Changes (October 2025)
 
-1. **Credit-Based Payment System**: Implemented Stripe payment integration with word-based credits:
+1. **Critical Analysis Protocol Overhaul**: Completely rewrote AI analysis system to identify pseudo-intellectual writing:
+   - Changed from "evaluate text" to "ANSWER 18 SPECIFIC QUESTIONS" about the text
+   - Questions identify: phony jargon, undefined terms, institutional conformity, lack of genuine insight
+   - Penalizes academic boilerplate and rewards actual substance
+   - Paradigm example: Transcendental empiricism dissertation (scores 28-42 instead of 90+)
+   - All 4 providers (DeepSeek, OpenAI, Anthropic, Perplexity) use identical critical protocol
+   - **Output Format**: Each question is **numbered and bold** with answers clearly separated
+     - Example: **1. IS IT INSIGHTFUL?** followed by explicit answer with quotes
+
+2. **Credit-Based Payment System**: Implemented Stripe payment integration with word-based credits:
    - Users must purchase credits to analyze text
    - Credits are tracked separately per AI provider (Zhi1, Zhi2, Zhi3, Zhi4)
    - Analysis cost calculated by word count
    - Real-time credit deduction during analysis
 
-2. **Special Admin Access**: Username "jmkuczynski" (case-insensitive) has special privileges:
+3. **Special Admin Access**: Username "jmkuczynski" (case-insensitive) has special privileges:
    - Can login without entering a password (password field is optional)
    - Always displays 999,999 credits per provider (unlimited)
    - Account is auto-created on first login if it doesn't exist
 
-3. **Provider Rebranding**: AI provider names in the UI have been rebranded:
+4. **Provider Rebranding**: AI provider names in the UI have been rebranded:
    - DeepSeek → Zhi1
    - OpenAI → Zhi2
    - Anthropic → Zhi3
    - Perplexity → Zhi4
    - (Backend LLM integrations remain unchanged)
 
-4. **Real Perplexity Integration**: Implemented actual Perplexity API integration using their sonar-pro model for both cognitive and psychological analysis
+5. **Real Perplexity Integration**: Implemented actual Perplexity API integration using their sonar-pro model for both cognitive and psychological analysis
 
-5. **Payment Integration**: 
+6. **Payment Integration**: 
    - Stripe checkout for purchasing credit packages
    - Five price tiers: $5, $10, $25, $50, $100
    - Different word allocations per provider based on API costs
    - Webhook handling for automatic credit fulfillment
 
-6. **CORS and Session Configuration for Cross-Origin Support**:
+7. **CORS and Session Configuration for Cross-Origin Support**:
    - Configured CORS to allow credentials from Replit domain and custom domain (cognitiveprofiler.xyz)
    - Set `trust proxy: 1` for proper HTTPS detection behind Replit's proxy
    - Updated session cookies with `secure: true` and `sameSite: "none"` for cross-origin requests
