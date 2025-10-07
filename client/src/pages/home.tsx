@@ -308,26 +308,46 @@ export default function Home() {
           </>
         )}
         
-        {isLoading && (
+        {isLoading && !hasResult && (
           <ProcessingIndicator />
         )}
         
-        {!isLoading && !isError && (
+        {!isError && (
           <>
             {cognitiveResult && analysisType === "cognitive" && (
-              <ResultsSection 
-                result={cognitiveResult} 
-                onNewAnalysis={handleReset}
-                onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "psychological")}
-              />
+              <>
+                {isLoading && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-700 border-t-transparent rounded-full"></div>
+                      <span className="font-medium">Streaming results from AI providers...</span>
+                    </div>
+                  </div>
+                )}
+                <ResultsSection 
+                  result={cognitiveResult} 
+                  onNewAnalysis={handleReset}
+                  onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "psychological")}
+                />
+              </>
             )}
             
             {psychologicalResult && analysisType === "psychological" && (
-              <SimplePsychologicalResults 
-                result={psychologicalResult}
-                onNewAnalysis={handleReset}
-                onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "cognitive")}
-              />
+              <>
+                {isLoading && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-700 border-t-transparent rounded-full"></div>
+                      <span className="font-medium">Streaming results from AI providers...</span>
+                    </div>
+                  </div>
+                )}
+                <SimplePsychologicalResults 
+                  result={psychologicalResult}
+                  onNewAnalysis={handleReset}
+                  onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "cognitive")}
+                />
+              </>
             )}
           </>
         )}
