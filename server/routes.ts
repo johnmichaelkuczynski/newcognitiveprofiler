@@ -6,7 +6,7 @@ import { generateWordDocument, generatePdfDocument } from "./documentGenerator";
 import { sendEmail } from "./emailService";
 import { generateComprehensiveReport } from "./ai/comprehensiveReport";
 import { generateComprehensivePsychologicalReport } from "./ai/psychologicalComprehensiveReport";
-import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits, calculateWordCount, checkAllProvidersCredits, deductProviderCredits } from "./auth";
+import { registerUser, loginUser, getUserById, registerSchema, loginSchema, type AuthUser, deductUserCredits, calculateWordCount, checkAllProvidersCredits, deductProviderCredits, deductCreditsForAllProviders } from "./auth";
 import { createPayPalOrder, capturePayPalOrder, creditPackages, getUserCredits } from "./payments";
 import { createCheckoutSession, handleWebhook, stripeCreditPackages } from "./stripe";
 import { db } from "./storage";
@@ -285,17 +285,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis endpoint - using all providers (FREE - no auth required)
+  // Analysis endpoint - using all providers
   app.post("/api/analyze-all", async (req, res) => {
     try {
       // Validate request body
       const { text, analysisType } = analyzeRequestSchema.omit({ modelProvider: true }).parse(req.body);
       
-      // Call all AI APIs and get combined results - no credit checks
+      // Calculate word count
+      const wordCount = text.trim().split(/\s+/).length;
+      
+      // Check if user is logged in and has sufficient credits
+      let isPreview = true;
+      let insufficientProviders: string[] = [];
+      
+      if (req.session.userId) {
+        const creditCheck = await checkAllProvidersCredits(req.session.userId, wordCount);
+        
+        if (creditCheck.success) {
+          // User has sufficient credits - run full analysis and deduct credits
+          isPreview = false;
+          
+          // Deduct credits before processing
+          await deductCreditsForAllProviders(req.session.userId, wordCount);
+        } else {
+          // User is logged in but has insufficient credits - preview mode
+          isPreview = true;
+          insufficientProviders = creditCheck.insufficientProviders || [];
+        }
+      }
+      // If no session userId, isPreview remains true (not logged in)
+      
+      // Call all AI APIs and get combined results
       const analyses = await analyzeTextWithAllProviders(text, analysisType);
       
-      // Return all analysis results
-      res.json(analyses);
+      // If in preview mode, add preview flag
+      const response: any = { ...analyses };
+      if (isPreview) {
+        response.isPreview = true;
+        response.previewMessage = req.session.userId 
+          ? `Insufficient credits. Purchase credits to see the full analysis.`
+          : `Not logged in. Sign up or login and purchase credits to see the full analysis.`;
+        if (insufficientProviders.length > 0) {
+          response.insufficientProviders = insufficientProviders;
+        }
+      } else {
+        response.isPreview = false;
+        
+        // Get updated credits after deduction
+        const updatedUser = await db.select().from(users).where(eq(users.id, req.session.userId!)).limit(1);
+        if (updatedUser.length > 0) {
+          response.updatedCredits = {
+            zhi1: updatedUser[0].credits_zhi1,
+            zhi2: updatedUser[0].credits_zhi2,
+            zhi3: updatedUser[0].credits_zhi3,
+            zhi4: updatedUser[0].credits_zhi4
+          };
+        }
+      }
+      
+      // Return all analysis results with preview flag
+      res.json(response);
     } catch (error) {
       console.error(`Error analyzing text with all providers (${req.body.analysisType || 'cognitive'}):`, error);
       

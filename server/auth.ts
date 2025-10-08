@@ -252,7 +252,37 @@ export async function checkAllProvidersCredits(
     insufficientProviders: insufficientProviders.length > 0 ? insufficientProviders : undefined,
     credits
   };
-} 
+}
+
+// Deduct credits for all providers
+export async function deductCreditsForAllProviders(
+  userId: number,
+  wordCount: number
+): Promise<{ success: boolean; error?: string }> {
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  
+  if (user.length === 0) {
+    return { success: false, error: 'User not found' };
+  }
+
+  // Special case for jmkuczynski - unlimited credits, no deduction needed
+  if (user[0].username.toLowerCase() === 'jmkuczynski') {
+    return { success: true };
+  }
+
+  // Deduct credits for all providers
+  await db.update(users)
+    .set({
+      credits_zhi1: sql`${users.credits_zhi1} - ${wordCount}`,
+      credits_zhi2: sql`${users.credits_zhi2} - ${wordCount}`,
+      credits_zhi3: sql`${users.credits_zhi3} - ${wordCount}`,
+      credits_zhi4: sql`${users.credits_zhi4} - ${wordCount}`,
+    })
+    .where(eq(users.id, userId));
+
+  return { success: true };
+}
+
 import express from 'express';
 export const authRouter = express.Router();
 

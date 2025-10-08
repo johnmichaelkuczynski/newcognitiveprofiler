@@ -52,9 +52,10 @@ interface SimplePsychologicalResultsProps {
   result: MultiProviderPsychologicalResult;
   onNewAnalysis: () => void;
   onSwitchAnalysisType?: (text: string) => void;
+  onBuyCredits?: () => void;
 }
 
-export default function SimplePsychologicalResults({ result, onNewAnalysis, onSwitchAnalysisType }: SimplePsychologicalResultsProps) {
+export default function SimplePsychologicalResults({ result, onNewAnalysis, onSwitchAnalysisType, onBuyCredits }: SimplePsychologicalResultsProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
@@ -705,7 +706,12 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
                         
                         <div>
                           <div className="font-medium mb-2">Analysis</div>
-                          <p className="text-neutral-700">{providerData.emotionalProfile.detailedAnalysis}</p>
+                          <p className="text-neutral-700 whitespace-pre-wrap">
+                            {result.isPreview 
+                              ? providerData.emotionalProfile.detailedAnalysis.substring(0, Math.floor(providerData.emotionalProfile.detailedAnalysis.length / 2))
+                              : providerData.emotionalProfile.detailedAnalysis
+                            }
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -741,7 +747,12 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
                         
                         <div>
                           <div className="font-medium mb-2">Analysis</div>
-                          <p className="text-neutral-700">{providerData.motivationalStructure.detailedAnalysis}</p>
+                          <p className="text-neutral-700 whitespace-pre-wrap">
+                            {result.isPreview 
+                              ? providerData.motivationalStructure.detailedAnalysis.substring(0, Math.floor(providerData.motivationalStructure.detailedAnalysis.length / 2))
+                              : providerData.motivationalStructure.detailedAnalysis
+                            }
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -784,7 +795,12 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
                         
                         <div>
                           <div className="font-medium mb-2">Analysis</div>
-                          <p className="text-neutral-700">{providerData.interpersonalDynamics.detailedAnalysis}</p>
+                          <p className="text-neutral-700 whitespace-pre-wrap">
+                            {result.isPreview 
+                              ? providerData.interpersonalDynamics.detailedAnalysis.substring(0, Math.floor(providerData.interpersonalDynamics.detailedAnalysis.length / 2))
+                              : providerData.interpersonalDynamics.detailedAnalysis
+                            }
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -827,7 +843,29 @@ export default function SimplePsychologicalResults({ result, onNewAnalysis, onSw
                   {providerData.overallSummary && (
                     <div className="p-4 bg-white rounded-xl border border-neutral-200">
                       <h3 className="font-heading text-lg font-semibold mb-4">Overall Summary</h3>
-                      <p className="text-neutral-700 whitespace-pre-line">{providerData.overallSummary}</p>
+                      <p className="text-neutral-700 whitespace-pre-line">
+                        {result.isPreview 
+                          ? providerData.overallSummary.substring(0, Math.floor(providerData.overallSummary.length / 2))
+                          : providerData.overallSummary
+                        }
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Preview Mode Buy Credits Button */}
+                  {result.isPreview && (
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+                      <p className="text-center text-gray-700 mb-3 font-medium">
+                        📊 You're viewing a preview of the psychological analysis
+                      </p>
+                      <Button 
+                        onClick={onBuyCredits}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        data-testid="button-buy-credits-preview-psych"
+                      >
+                        <Heart className="h-4 w-4 mr-2" />
+                        To get the rest, buy credits
+                      </Button>
                     </div>
                   )}
                   

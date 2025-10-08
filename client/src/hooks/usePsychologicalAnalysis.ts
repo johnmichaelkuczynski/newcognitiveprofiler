@@ -13,6 +13,15 @@ export type MultiProviderPsychologicalResult = Record<ModelProvider, Psychologic
     zhi3: number;
     zhi4: number;
   };
+  isPreview?: boolean;
+  previewMessage?: string;
+  insufficientProviders?: string[];
+  updatedCredits?: {
+    zhi1: number;
+    zhi2: number;
+    zhi3: number;
+    zhi4: number;
+  };
 };
 
 export function usePsychologicalAnalysis(onCreditsUpdated?: (credits: { zhi1: number; zhi2: number; zhi3: number; zhi4: number }) => void) {

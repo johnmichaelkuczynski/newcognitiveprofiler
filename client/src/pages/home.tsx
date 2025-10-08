@@ -319,6 +319,7 @@ export default function Home() {
                 result={cognitiveResult} 
                 onNewAnalysis={handleReset}
                 onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "psychological")}
+                onBuyCredits={handlePurchaseCredits}
               />
             )}
             
@@ -327,6 +328,7 @@ export default function Home() {
                 result={psychologicalResult}
                 onNewAnalysis={handleReset}
                 onSwitchAnalysisType={(text) => handleSwitchAnalysisType(text, "cognitive")}
+                onBuyCredits={handlePurchaseCredits}
               />
             )}
           </>

@@ -42,11 +42,15 @@ const providerInfo: Record<string, {
 function CognitiveProfileCard({ 
   result, 
   providerKey,
-  onGenerateReport
+  onGenerateReport,
+  isPreview,
+  onBuyCredits
 }: { 
   result: CognitiveAnalysisResult; 
   providerKey: ModelProvider;
   onGenerateReport?: (provider: ModelProvider) => void;
+  isPreview?: boolean;
+  onBuyCredits?: () => void;
 }) {
   // Check if the providerKey exists in providerInfo before destructuring
   if (!providerInfo[providerKey]) {
@@ -54,6 +58,11 @@ function CognitiveProfileCard({
   }
   
   const { name, color, icon: Icon } = providerInfo[providerKey];
+  
+  // Truncate analysis to half if in preview mode
+  const displayedAnalysis = isPreview 
+    ? result.detailedAnalysis.substring(0, Math.floor(result.detailedAnalysis.length / 2))
+    : result.detailedAnalysis;
   
   return (
     <div className="bg-white rounded-xl shadow-md border border-neutral-200 overflow-hidden">
@@ -102,7 +111,22 @@ function CognitiveProfileCard({
         
         <div className="mb-6">
           <h4 className="font-medium text-secondary-light mb-2">Analysis</h4>
-          <p className="text-neutral-700">{result.detailedAnalysis}</p>
+          <p className="text-neutral-700 whitespace-pre-wrap">{displayedAnalysis}</p>
+          {isPreview && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+              <p className="text-center text-gray-700 mb-3 font-medium">
+                📊 You're viewing a preview of the analysis
+              </p>
+              <Button 
+                onClick={onBuyCredits}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                data-testid="button-buy-credits-preview"
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                To get the rest, buy credits
+              </Button>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -133,9 +157,10 @@ interface ResultsSectionProps {
   result: MultiProviderAnalysisResult;
   onNewAnalysis: () => void;
   onSwitchAnalysisType?: (text: string) => void;
+  onBuyCredits?: () => void;
 }
 
-export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysisType }: ResultsSectionProps) {
+export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysisType, onBuyCredits }: ResultsSectionProps) {
   const [activeTab, setActiveTab] = useState("all-profiles");
   const [copied, setCopied] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ModelProvider>("openai");
@@ -704,7 +729,27 @@ export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysis
                         
                         <div className="mb-6">
                           <h4 className="font-medium text-secondary-light mb-2">Analysis</h4>
-                          <p className="text-neutral-700">{(analysis as CognitiveAnalysisResult).detailedAnalysis}</p>
+                          <p className="text-neutral-700 whitespace-pre-wrap">
+                            {result.isPreview 
+                              ? (analysis as CognitiveAnalysisResult).detailedAnalysis.substring(0, Math.floor((analysis as CognitiveAnalysisResult).detailedAnalysis.length / 2))
+                              : (analysis as CognitiveAnalysisResult).detailedAnalysis
+                            }
+                          </p>
+                          {result.isPreview && (
+                            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+                              <p className="text-center text-gray-700 mb-3 font-medium">
+                                📊 You're viewing a preview of the analysis
+                              </p>
+                              <Button 
+                                onClick={onBuyCredits}
+                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                data-testid="button-buy-credits-preview"
+                              >
+                                <Heart className="h-4 w-4 mr-2" />
+                                To get the rest, buy credits
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -778,7 +823,27 @@ export default function ResultsSection({ result, onNewAnalysis, onSwitchAnalysis
                       
                       <div className="mb-6">
                         <h4 className="font-medium text-secondary-light mb-2">Analysis</h4>
-                        <p className="text-neutral-700">{(result[provider as ModelProvider] as CognitiveAnalysisResult).detailedAnalysis}</p>
+                        <p className="text-neutral-700 whitespace-pre-wrap">
+                          {result.isPreview 
+                            ? (result[provider as ModelProvider] as CognitiveAnalysisResult).detailedAnalysis.substring(0, Math.floor((result[provider as ModelProvider] as CognitiveAnalysisResult).detailedAnalysis.length / 2))
+                            : (result[provider as ModelProvider] as CognitiveAnalysisResult).detailedAnalysis
+                          }
+                        </p>
+                        {result.isPreview && (
+                          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg">
+                            <p className="text-center text-gray-700 mb-3 font-medium">
+                              📊 You're viewing a preview of the analysis
+                            </p>
+                            <Button 
+                              onClick={onBuyCredits}
+                              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              data-testid="button-buy-credits-preview-single"
+                            >
+                              <Heart className="h-4 w-4 mr-2" />
+                              To get the rest, buy credits
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
